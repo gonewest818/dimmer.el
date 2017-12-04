@@ -1,9 +1,9 @@
-;;; dimmer.el --- highlights the current-window by dimming the others
+;;; dimmer.el --- visually highlight the selected buffer 
 ;; 
 ;; Filename: dimmer.el
 ;; Author: Neil Okamoto
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "24"))
+;; Package-Requires: ((emacs "25"))
 ;; URL: https://github.com/gonewest818/dimmer.el
 ;; Keywords: faces, editing
 ;; 
