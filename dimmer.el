@@ -17,7 +17,7 @@
 ;; that your overall color scheme is shown in a muted form without
 ;; requiring you to define the "dim" versions of every face.
 ;;
-;; The percentage of dimming is user configrable. In addition, for
+;; The percentage of dimming is user configurable. In addition, for
 ;; users of "light" themes there is a dimmer-invert flag that adjusts
 ;; the faces brighter (toward white, rather than toward black).
 ;;
@@ -53,23 +53,21 @@
 ;;; Code:
 
 
+(defconst dimmer-face-remaps (make-hash-table)
+  "Internal hashmap of per-buffer face remappings needed to clean up later.")
 
-;; (setq face-remapping-alist nil)
+(defconst dimmer-last-buffer nil
+  "Identity of the last buffer to be made current.")
 
-;; (with-selected-window (get-buffer-window "*eshell*")
-;;   (setq face-remapping-alist nil)
-;;   (redraw-display))
+(defcustom dimmer-percent 0.80
+  "Controls the degree to which unselected buffers are dimmed."
+  :type '(float)
+  :group 'dimmer)
 
-
-;; ======================================================================
-
-(defvar dimmer-face-remaps (make-hash-table))
-
-(defvar dimmer-last-buffer nil)
-
-(defvar dimmer-percent 0.80)
-
-(defvar dimmer-invert nil)
+(defcustom dimmer-invert nil
+  "Inverts the dimming for dark-on-light themes."
+  :type '(boolean)
+  :group 'dimmer)
 
 (defun dimmer-face-color (f pct &optional invert)
   (when-let ((fg (face-foreground f)))
@@ -81,62 +79,63 @@
                (mapcar (lambda (x) (* x pct))
                        (color-name-to-rgb fg))))))
 
-;; (dimmer-face-color 'default 0.1 t)
-;; (dimmer-face-color 'hiwin-face 0.5)
-
-(defun dimmer-dim-window (name pct &optional invert)
-  (let ((win (get-buffer-window name))
-        (cookies nil))
-    (unless (gethash win dimmer-face-remaps)
-      (with-selected-window win
-        (puthash win
+(defun dimmer-dim-buffer (buf pct &optional invert)
+  (let ((cookies nil))
+    (unless (gethash buf dimmer-face-remaps)
+      ;; skip dimming if already dimmed
+      (with-current-buffer buf
+        (puthash buf
                  (dolist (f (face-list) cookies)
                    (when-let ((c (dimmer-face-color f pct invert)))
                      (setq cookies
                            (cons (face-remap-add-relative f :foreground c) cookies))))
                  dimmer-face-remaps)))))
 
-(defun dimmer-restore-window (name)
-  (let ((win (get-buffer-window name)))
-    (when-let ((cookies (gethash win dimmer-face-remaps)))
-      (with-selected-window win
-        (dolist (c cookies)
-          (face-remap-remove-relative c)))
-      (remhash win dimmer-face-remaps))))
+(defun dimmer-restore-buffer (buf)
+  (when-let ((cookies (gethash buf dimmer-face-remaps)))
+    ;; when-let skips restoring if not dimmed
+    (with-current-buffer buf
+      (dolist (c cookies)
+        (face-remap-remove-relative c)))
+    (remhash buf dimmer-face-remaps)))
+
+(defun dimmer-process-all ()
+  (let ((selected (current-buffer)))
+    (setq dimmer-last-buffer selected)
+    (dolist (buf (buffer-list))
+      (if (eq buf selected)
+          (dimmer-restore-buffer buf)
+        (dimmer-dim-buffer buf dimmer-percent dimmer-invert)))))
+
+(defun dimmer-restore-all ()
+  (dolist (buf (buffer-list))
+    (dimmer-restore-buffer buf)))
 
 ;; (dimmer-dim-window "hiwin.el" 0.70)
 ;; (gethash (get-buffer-window "*eshell*") dimmer-face-remaps)
 ;; (dimmer-restore-window "hiwin.el")
+;; (dimmer-restore-all)
+
+(defun dimmer-command-hook ()
+  (unless (eq (current-buffer) dimmer-last-buffer)
+    (dimmer-process-all)))
+
+(defun dimmer-config-change-hook ()
+  (dimmer-restore-all)
+  (dimmer-process-all))
 
 ;;;###autoload
 (defun dimmer-activate ()
   (interactive)
-  (add-hook 'post-command-hook 'dimmer-command-hook))
+  (add-hook 'post-command-hook 'dimmer-command-hook)
+  (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
 
 ;;;###autoload
 (defun dimmer-deactivate ()
   (interactive)
   (remove-hook 'post-command-hook 'dimmer-command-hook)
-  (dimmer-delete-all))
-
-(defun fih ()
-  (message (concat "focus in: " (buffer-name (window-buffer (selected-window))))))
-
-(defun foh ()
-  (message (concat "focus out: " (buffer-name (window-buffer (selected-window))))))
-
-;; (add-hook 'focus-in-hook 'fih)
-;; (add-hook 'focus-out-hook 'foh)
-
-(defun dimmer-command-hook ()
-  (unless (eq (current-buffer) dimmer-last-buffer)
-    (let ((current (current-buffer))
-          (previous dimmer-last-buffer))
-      (setq dimmer-last-buffer current)
-      (when current
-        (dimmer-restore-window (buffer-name current)))
-      (when previous
-        (dimmer-dim-window (buffer-name previous) dimmer-percent dimmer-invert)))))
+  (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
+  (dimmer-restore-all))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; dimmer.el ends here
