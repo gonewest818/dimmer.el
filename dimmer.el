@@ -144,5 +144,8 @@ in ‘dimmer-face-color’."
   (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
   (dimmer-restore-all))
 
+
+(provide 'dimmer)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; dimmer.el ends here
