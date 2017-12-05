@@ -21,6 +21,10 @@ use overlays, and therefore we avoid some of the visual problems
 the hiwin module exhibits when highlighting interactive shells
 and/or repls.
 
+## Demo
+
+![Demo Video](https://github.com/gonewest818/dimmer.el/raw/master/doc/dimmer-demo.gif)
+
 ## Usage
 
      (require 'dimmer)
