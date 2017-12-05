@@ -52,15 +52,22 @@
 ;; 
 ;;; Code:
 
+;; to-do
+;;  - 'dimmer-face-remaps' could stored in buffer local variables
+;;  - allow user-configurable filters to exempt buffers from dimming?
 
-(defconst dimmer-face-remaps (make-hash-table)
-  "Internal hashmap of per-buffer face remappings needed to clean up later.")
+
+(defconst dimmer-face-remaps (make-hash-table :test 'equal)
+  "Internal hashmap of per-buffer face remappings for eventual clean up.")
+
+(defconst dimmer-dimmed-faces (make-hash-table :test 'equal)
+  "Cache of computed faces with dimmed foreground values.")
 
 (defconst dimmer-last-buffer nil
   "Identity of the last buffer to be made current.")
 
 (defcustom dimmer-percent 0.20
-  "Control the degree to which unselected buffers are dimmed (range: 0.0 - 1.0)."
+  "Control the degree to which unselected buffers dim (range: 0.0 - 1.0)."
   :type '(float)
   :group 'dimmer)
 
@@ -69,21 +76,34 @@
   :type '(boolean)
   :group 'dimmer)
 
-(defun dimmer-face-color (f pct &optional invert)
+
+(defun dimmer-compute-rgb (c pct invert)
+  "Computes color C dimmed by percentage PCT. When INVERT is true,
+the dimmed value is brighter rather than darker."
+  (if invert
+      (apply 'color-rgb-to-hex
+             (mapcar (lambda (x) (- 1.0 (* (- 1.0 x)
+                                           (- 1.0 pct))))
+                     (color-name-to-rgb c)))
+    (apply 'color-rgb-to-hex
+           (mapcar (lambda (x) (* x (- 1.0 pct)))
+                   (color-name-to-rgb c)))))
+
+(defun dimmer-face-color (f pct invert)
   "Compute a dimmed version of the foreground color of face F.
 PCT is the amount of dimming where 0.0 is no change and 1.0 is
 maximum change.  When INVERT is not nil, invert the scaling
 for dark-on-light themes."
-  (when-let ((fg (face-foreground f)))
-    (if invert
-        (apply 'color-rgb-to-hex
-               (mapcar (lambda (x) (- 1.0 (* (- 1.0 x) (- 1.0 pct))))
-                       (color-name-to-rgb fg)))
-        (apply 'color-rgb-to-hex
-               (mapcar (lambda (x) (* x (- 1.0 pct)))
-                       (color-name-to-rgb fg))))))
+  (let ((key (concat (symbol-name f) "-"
+                     (number-to-string pct)
+                     (if invert "-t" "-nil"))))
+    (or (gethash key dimmer-dimmed-faces)
+        (when-let ((fg (face-foreground f)))
+          (let* ((rgb (dimmer-compute-rgb fg pct invert)))
+            (puthash key rgb dimmer-dimmed-faces)
+            rgb)))))
 
-(defun dimmer-dim-buffer (buf pct &optional invert)
+(defun dimmer-dim-buffer (buf pct invert)
   "Dim all the faces defined in the buffer BUF.
 PCT and INVERT controls the dimming as defined
 in ‘dimmer-face-color’."
@@ -105,18 +125,26 @@ in ‘dimmer-face-color’."
         (face-remap-remove-relative c)))
     (remhash buf dimmer-face-remaps)))
 
+(defun dimmer-filtered-buffer-list ()
+  "Get filtered subset of all buffers."
+  (seq-filter
+   (lambda (b)
+     (not (eq ?\s ; space
+              (elt (buffer-name b) 0))))
+   (buffer-list)))
+
 (defun dimmer-process-all ()
   "Process all buffers and dim or un-dim each."
   (let ((selected (current-buffer)))
     (setq dimmer-last-buffer selected)
-    (dolist (buf (buffer-list))
+    (dolist (buf (dimmer-filtered-buffer-list))
       (if (eq buf selected)
           (dimmer-restore-buffer buf)
         (dimmer-dim-buffer buf dimmer-percent dimmer-invert)))))
 
 (defun dimmer-restore-all ()
   "Un-dim all buffers."
-  (dolist (buf (buffer-list))
+  (dolist (buf (dimmer-filtered-buffer-list))
     (dimmer-restore-buffer buf)))
 
 (defun dimmer-command-hook ()
@@ -126,7 +154,7 @@ in ‘dimmer-face-color’."
 
 (defun dimmer-config-change-hook ()
   "Process all buffers if window configuration has changed."
-  (dimmer-restore-all)
+  ;(dimmer-restore-all)
   (dimmer-process-all))
 
 (defun dimmer-kill-buffer-hook ()
