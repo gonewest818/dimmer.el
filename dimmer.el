@@ -1,4 +1,4 @@
-;;; dimmer.el --- visually highlight the selected buffer 
+;;; dimmer.el --- visually highlight the selected buffer
 ;; 
 ;; Filename: dimmer.el
 ;; Author: Neil Okamoto
@@ -129,11 +129,16 @@ in ‘dimmer-face-color’."
   (dimmer-restore-all)
   (dimmer-process-all))
 
+(defun dimmer-kill-buffer-hook ()
+  "Delete any saved state associated with the buffer."
+  (remhash (current-buffer) dimmer-face-remaps))
+
 ;;;###autoload
 (defun dimmer-activate ()
   "Activate the dimmer."
   (interactive)
   (add-hook 'post-command-hook 'dimmer-command-hook)
+  (add-hook 'kill-buffer-hook 'dimmer-kill-buffer-hook)
   (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
 
 ;;;###autoload
@@ -141,8 +146,33 @@ in ‘dimmer-face-color’."
   "Deactivate the dimmer and restore all buffers to normal faces."
   (interactive)
   (remove-hook 'post-command-hook 'dimmer-command-hook)
+  (remove-hook 'kill-buffer-hook 'dimmer-kill-buffer-hook)
   (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
   (dimmer-restore-all))
+
+
+;;; debugging - call from *scratch*, ielm, or eshell
+
+(defun dimmer-debug-remaps (name &optional clear)
+  "Display 'face-remapping-alist' for buffer NAME (or clear if CLEAR)."
+  (with-current-buffer name
+    (if clear
+        (setq face-remapping-alist nil)
+      face-remapping-alist)))
+
+(defun dimmer-debug-hash (&optional name clear)
+  "Display 'dimmer-face-remaps' for buffer NAME (or clear if CLEAR)."
+  (if name
+      (if clear
+          (remhash (get-buffer name) dimmer-face-remaps)
+        (gethash (get-buffer name) dimmer-face-remaps))
+    dimmer-face-remaps))
+
+(defun dimmer-debug-reset (name)
+  "Clear 'face-remapping-alist' and 'dimmer-face-remaps' for NAME."
+  (dimmer-debug-hash name t)
+  (dimmer-debug-remaps name t)
+  (redraw-display))
 
 
 (provide 'dimmer)
