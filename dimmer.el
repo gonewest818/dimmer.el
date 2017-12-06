@@ -52,22 +52,10 @@
 ;; 
 ;;; Code:
 
-;; to-do
-;;  - 'dimmer-face-remaps' could stored in buffer local variables
-;;  - allow user-configurable filters to exempt buffers from dimming?
 
-
-(defconst dimmer-face-remaps (make-hash-table :test 'equal)
-  "Internal hashmap of per-buffer face remappings for eventual clean up.")
-
-(defconst dimmer-dimmed-faces (make-hash-table :test 'equal)
-  "Cache of computed faces with dimmed foreground values.")
-
-(defconst dimmer-last-buffer nil
-  "Identity of the last buffer to be made current.")
 
 (defcustom dimmer-percent 0.20
-  "Control the degree to which unselected buffers dim (range: 0.0 - 1.0)."
+  "Control the degree to which buffers are dimmed (0.0 - 1.0)."
   :type '(float)
   :group 'dimmer)
 
@@ -76,10 +64,27 @@
   :type '(boolean)
   :group 'dimmer)
 
+(defcustom dimmer-exclusion-regexp nil
+  "Regular expression describing buffer names that are never dimmed."
+  :type '(regexp)
+  :group 'dimmer)
+
+
+;;  Internal state
+
+(defvar-local dimmer-buffer-face-remaps nil
+  "Per-buffer face remappings needed for later clean up.")
+
+(defconst dimmer-dimmed-faces (make-hash-table :test 'equal)
+  "Cache of face names with their computed dimmed values.")
+
+(defconst dimmer-last-buffer nil
+  "Identity of the last buffer to be made current.")
+
 
 (defun dimmer-compute-rgb (c pct invert)
-  "Computes color C dimmed by percentage PCT. When INVERT is true,
-the dimmed value is brighter rather than darker."
+  "Computes the color C when dimmed by percentage PCT.
+When INVERT is true, make the value brighter rather than darker."
   (if invert
       (apply 'color-rgb-to-hex
              (mapcar (lambda (x) (- 1.0 (* (- 1.0 x)
@@ -107,30 +112,30 @@ for dark-on-light themes."
   "Dim all the faces defined in the buffer BUF.
 PCT and INVERT controls the dimming as defined
 in ‘dimmer-face-color’."
-  (let ((cookies nil))
-    (unless (gethash buf dimmer-face-remaps)
-      (with-current-buffer buf
-        (puthash buf
-                 (dolist (f (face-list) cookies)
-                   (when-let ((c (dimmer-face-color f pct invert)))
-                     (setq cookies
-                           (cons (face-remap-add-relative f :foreground c) cookies))))
-                 dimmer-face-remaps)))))
+  (with-current-buffer buf
+    (unless dimmer-buffer-face-remaps
+      (dolist (f (face-list))
+        (when-let ((c (dimmer-face-color f pct invert)))
+          (setq dimmer-buffer-face-remaps
+                (cons (face-remap-add-relative f :foreground c)
+                      dimmer-buffer-face-remaps)))))))
 
 (defun dimmer-restore-buffer (buf)
   "Restore the un-dimmed faces in the buffer BUF."
-  (when-let ((cookies (gethash buf dimmer-face-remaps)))
-    (with-current-buffer buf
-      (dolist (c cookies)
-        (face-remap-remove-relative c)))
-    (remhash buf dimmer-face-remaps)))
+  (with-current-buffer buf
+    (when dimmer-buffer-face-remaps
+      (dolist (c dimmer-buffer-face-remaps)
+        (face-remap-remove-relative c))
+      (setq dimmer-buffer-face-remaps nil))))
 
 (defun dimmer-filtered-buffer-list ()
   "Get filtered subset of all buffers."
   (seq-filter
-   (lambda (b)
-     (not (eq ?\s ; space
-              (elt (buffer-name b) 0))))
+   (lambda (buf)
+     (let ((name (buffer-name buf)))
+       (not (or (eq ?\s (elt name 0)) ; leading space
+                (and dimmer-exclusion-regexp
+                     (string-match-p dimmer-exclusion-regexp name))))))
    (buffer-list)))
 
 (defun dimmer-process-all ()
@@ -157,16 +162,18 @@ in ‘dimmer-face-color’."
   ;(dimmer-restore-all)
   (dimmer-process-all))
 
-(defun dimmer-kill-buffer-hook ()
-  "Delete any saved state associated with the buffer."
-  (remhash (current-buffer) dimmer-face-remaps))
+;; (defun dimmer-kill-buffer-hook ()
+;;   "Delete any saved state associated with the buffer."
+;;   ;;(remhash (current-buffer) dimmer-face-remaps)
+;;   ;; NONE NOW THAT THE STATE IS BUFFER-LOCAL
+;;   )
 
 ;;;###autoload
 (defun dimmer-activate ()
   "Activate the dimmer."
   (interactive)
   (add-hook 'post-command-hook 'dimmer-command-hook)
-  (add-hook 'kill-buffer-hook 'dimmer-kill-buffer-hook)
+  ;; (add-hook 'kill-buffer-hook 'dimmer-kill-buffer-hook) ; REMOVE?
   (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
 
 ;;;###autoload
@@ -174,30 +181,29 @@ in ‘dimmer-face-color’."
   "Deactivate the dimmer and restore all buffers to normal faces."
   (interactive)
   (remove-hook 'post-command-hook 'dimmer-command-hook)
-  (remove-hook 'kill-buffer-hook 'dimmer-kill-buffer-hook)
+  ;; (remove-hook 'kill-buffer-hook 'dimmer-kill-buffer-hook) ; REMOVE?
   (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
   (dimmer-restore-all))
 
 
 ;;; debugging - call from *scratch*, ielm, or eshell
 
-(defun dimmer-debug-remaps (name &optional clear)
+(defun dimmer--debug-remaps (name &optional clear)
   "Display 'face-remapping-alist' for buffer NAME (or clear if CLEAR)."
   (with-current-buffer name
     (if clear
         (setq face-remapping-alist nil)
       face-remapping-alist)))
 
-(defun dimmer-debug-hash (&optional name clear)
-  "Display 'dimmer-face-remaps' for buffer NAME (or clear if CLEAR)."
-  (if name
-      (if clear
-          (remhash (get-buffer name) dimmer-face-remaps)
-        (gethash (get-buffer name) dimmer-face-remaps))
-    dimmer-face-remaps))
+(defun dimmer--debug-hash (name &optional clear)
+  "Display 'dimmer-buffer-face-remaps' for buffer NAME (or clear if CLEAR)."
+  (with-current-buffer name
+    (if clear
+        (setq dimmer-buffer-face-remaps nil)
+      dimmer-buffer-face-remaps)))
 
-(defun dimmer-debug-reset (name)
-  "Clear 'face-remapping-alist' and 'dimmer-face-remaps' for NAME."
+(defun dimmer--debug-reset (name)
+  "Clear 'face-remapping-alist' and 'dimmer-buffer-face-remaps' for NAME."
   (dimmer-debug-hash name t)
   (dimmer-debug-remaps name t)
   (redraw-display))
