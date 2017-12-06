@@ -39,3 +39,5 @@ buffers to be more dim.
 Set `dimmer-invert` to `t` if you have a dark-on-light theme such that your
 faces need to be *lighter* in order to appear dimmer onscreen.
 
+Use `dimmer-exclusion-regexp` to describe patterns for buffer names that
+should never be dimmed, for example, you could match buffers created by helm.
