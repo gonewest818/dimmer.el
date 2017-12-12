@@ -52,7 +52,11 @@
 ;; 
 ;;; Code:
 
+(require 'subr-x)
+(require 'face-remap)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; configuration
 
 (defcustom dimmer-percent 0.20
   "Control the degree to which buffers are dimmed (0.0 - 1.0)."
@@ -69,8 +73,41 @@
   :type '(regexp)
   :group 'dimmer)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; compatibility needed as long as we support emacs-version < 26
 
-;;  Internal state
+(eval-and-compile
+
+  (unless (fboundp 'if-let*)
+    (defmacro if-let* (bindings then &rest else)
+      "Process BINDINGS and if all values are non-nil eval THEN, else ELSE.
+Argument BINDINGS is a list of tuples whose car is a symbol to be
+bound and (optionally) used in THEN, and its cadr is a sexp to be
+evalled to set symbol's value.  In the special case you only want
+to bind a single value, BINDINGS can just be a plain tuple."
+      (declare (indent 2)
+               (debug ([&or (&rest (symbolp form)) (symbolp form)] form body)))
+      (when (and (<= (length bindings) 2)
+                 (not (listp (car bindings))))
+        ;; Adjust the single binding case
+        (setq bindings (list bindings)))
+      `(let* ,(internal--build-bindings bindings)
+         (if ,(car (internal--listify (car (last bindings))))
+             ,then
+           ,@else))))
+
+  (unless (fboundp 'when-let*)
+    (defmacro when-let* (bindings &rest body)
+      "Process BINDINGS and if all values are non-nil eval BODY.
+Argument BINDINGS is a list of tuples whose car is a symbol to be
+bound and (optionally) used in BODY, and its cadr is a sexp to be
+evalled to set symbol's value.  In the special case you only want
+to bind a single value, BINDINGS can just be a plain tuple."
+      (declare (indent 1) (debug if-let*))
+      `(if-let* ,bindings ,(macroexp-progn body)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; implementation
 
 (defvar-local dimmer-buffer-face-remaps nil
   "Per-buffer face remappings needed for later clean up.")
@@ -80,7 +117,6 @@
 
 (defconst dimmer-last-buffer nil
   "Identity of the last buffer to be made current.")
-
 
 (defun dimmer-compute-rgb (c pct invert)
   "Computes the color C when dimmed by percentage PCT.
@@ -103,7 +139,7 @@ for dark-on-light themes."
                      (number-to-string pct)
                      (if invert "-t" "-nil"))))
     (or (gethash key dimmer-dimmed-faces)
-        (when-let ((fg (face-foreground f)))
+        (when-let* ((fg (face-foreground f)))
           (let* ((rgb (dimmer-compute-rgb fg pct invert)))
             (puthash key rgb dimmer-dimmed-faces)
             rgb)))))
@@ -115,7 +151,7 @@ in ‘dimmer-face-color’."
   (with-current-buffer buf
     (unless dimmer-buffer-face-remaps
       (dolist (f (face-list))
-        (when-let ((c (dimmer-face-color f pct invert)))
+        (when-let* ((c (dimmer-face-color f pct invert)))
           (setq dimmer-buffer-face-remaps
                 (cons (face-remap-add-relative f :foreground c)
                       dimmer-buffer-face-remaps)))))))
@@ -159,21 +195,13 @@ in ‘dimmer-face-color’."
 
 (defun dimmer-config-change-hook ()
   "Process all buffers if window configuration has changed."
-  ;(dimmer-restore-all)
   (dimmer-process-all))
-
-;; (defun dimmer-kill-buffer-hook ()
-;;   "Delete any saved state associated with the buffer."
-;;   ;;(remhash (current-buffer) dimmer-face-remaps)
-;;   ;; NONE NOW THAT THE STATE IS BUFFER-LOCAL
-;;   )
 
 ;;;###autoload
 (defun dimmer-activate ()
   "Activate the dimmer."
   (interactive)
   (add-hook 'post-command-hook 'dimmer-command-hook)
-  ;; (add-hook 'kill-buffer-hook 'dimmer-kill-buffer-hook) ; REMOVE?
   (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
 
 ;;;###autoload
@@ -181,11 +209,10 @@ in ‘dimmer-face-color’."
   "Deactivate the dimmer and restore all buffers to normal faces."
   (interactive)
   (remove-hook 'post-command-hook 'dimmer-command-hook)
-  ;; (remove-hook 'kill-buffer-hook 'dimmer-kill-buffer-hook) ; REMOVE?
   (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
   (dimmer-restore-all))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; debugging - call from *scratch*, ielm, or eshell
 
 (defun dimmer--debug-remaps (name &optional clear)
@@ -204,8 +231,8 @@ in ‘dimmer-face-color’."
 
 (defun dimmer--debug-reset (name)
   "Clear 'face-remapping-alist' and 'dimmer-buffer-face-remaps' for NAME."
-  (dimmer-debug-hash name t)
-  (dimmer-debug-remaps name t)
+  (dimmer--debug-hash name t)
+  (dimmer--debug-remaps name t)
   (redraw-display))
 
 
