@@ -2,6 +2,8 @@
 
 Visually highlight the selected buffer.
 
+[![Build Status](https://travis-ci.org/gonewest818/dimmer.el.svg?branch=master)](https://travis-ci.org/gonewest818/dimmer.el)
+
 ## Description
 
 This module provides a subtle visual indication which window is
