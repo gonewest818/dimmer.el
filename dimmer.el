@@ -53,6 +53,7 @@
 ;;; Code:
 
 (require 'subr-x)
+(require 'color)
 (require 'face-remap)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

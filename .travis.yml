@@ -1,0 +1,40 @@
+sudo: false
+language: emacs-lisp
+
+addons:
+  apt:
+    packages:
+    - autogen
+    - ca-certificates
+    - curl
+    - gcc
+    - libgmp-dev
+    - m4
+    - make
+    - pkg-config
+    - xz-utils
+
+cache:
+  directories:
+  - $HOME/local
+
+env:
+  global:
+    - PATH=$HOME/local/bin:$HOME/local/evm/bin:$HOME/local/cask/bin:$PATH
+  matrix:
+    - EMACS_BINARY=emacs-25.1-travis
+    - EMACS_BINARY=emacs-25.2-travis
+    - EMACS_BINARY=emacs-25.3-travis
+    - EMACS_BINARY=emacs-26-pretest-travis
+    - EMACS_BINARY=emacs-git-snapshot-travis
+
+before_script:
+  - sh travis-ci/install-gnutls.sh
+  - gnutls-cli -v
+  - sh travis-ci/install-evm.sh
+  - evm install $EMACS_BINARY --use --skip
+  - sh travis-ci/install-cask.sh
+  - make elpa
+script:
+  - emacs --version
+  - cask build
