@@ -2,6 +2,7 @@
 
 Visually highlight the selected buffer.
 
+[![MELPA](https://melpa.org/packages/dimmer-badge.svg)](https://melpa.org/#/dimmer)
 [![Build Status](https://travis-ci.org/gonewest818/dimmer.el.svg?branch=master)](https://travis-ci.org/gonewest818/dimmer.el)
 
 ## Description
