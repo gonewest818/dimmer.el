@@ -24,6 +24,14 @@ use overlays, and therefore we avoid some of the visual problems
 the hiwin module exhibits when highlighting interactive shells
 and/or repls.
 
+## Caveats
+
+This module makes use of the `face-remap-*` APIs in Emacs and these
+APIs work on buffers rather than windows. This means anytime you have
+multiple windows displaying the same buffer they will dim or undim
+together. In my configuration I combine this package with
+`global-hl-line-mode` so that it's also clear which window is active.
+
 ## Demo
 
 ![Demo Video](https://github.com/gonewest818/dimmer.el/raw/master/doc/dimmer-demo.gif)
