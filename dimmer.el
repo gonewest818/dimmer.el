@@ -2,7 +2,7 @@
 ;; 
 ;; Filename: dimmer.el
 ;; Author: Neil Okamoto
-;; Version: 0.1.0
+;; Version: 0.2.0-SNAPSHOT
 ;; Package-Requires: ((emacs "25"))
 ;; URL: https://github.com/gonewest818/dimmer.el
 ;; Keywords: faces, editing
@@ -74,38 +74,6 @@
   :type '(regexp)
   :group 'dimmer)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; compatibility needed as long as we support emacs-version < 26
-
-(eval-and-compile
-
-  (unless (fboundp 'if-let*)
-    (defmacro if-let* (bindings then &rest else)
-      "Process BINDINGS and if all values are non-nil eval THEN, else ELSE.
-Argument BINDINGS is a list of tuples whose car is a symbol to be
-bound and (optionally) used in THEN, and its cadr is a sexp to be
-evalled to set symbol's value.  In the special case you only want
-to bind a single value, BINDINGS can just be a plain tuple."
-      (declare (indent 2)
-               (debug ([&or (&rest (symbolp form)) (symbolp form)] form body)))
-      (when (and (<= (length bindings) 2)
-                 (not (listp (car bindings))))
-        ;; Adjust the single binding case
-        (setq bindings (list bindings)))
-      `(let* ,(internal--build-bindings bindings)
-         (if ,(car (internal--listify (car (last bindings))))
-             ,then
-           ,@else))))
-
-  (unless (fboundp 'when-let*)
-    (defmacro when-let* (bindings &rest body)
-      "Process BINDINGS and if all values are non-nil eval BODY.
-Argument BINDINGS is a list of tuples whose car is a symbol to be
-bound and (optionally) used in BODY, and its cadr is a sexp to be
-evalled to set symbol's value.  In the special case you only want
-to bind a single value, BINDINGS can just be a plain tuple."
-      (declare (indent 1) (debug if-let*))
-      `(if-let* ,bindings ,(macroexp-progn body)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; implementation
@@ -140,10 +108,11 @@ for dark-on-light themes."
                      (number-to-string pct)
                      (if invert "-t" "-nil"))))
     (or (gethash key dimmer-dimmed-faces)
-        (when-let* ((fg (face-foreground f)))
-          (let* ((rgb (dimmer-compute-rgb fg pct invert)))
-            (puthash key rgb dimmer-dimmed-faces)
-            rgb)))))
+        (let ((fg (face-foreground f)))
+          (if fg  ; e.g. "(when-let* ((fg (...)))" in Emacs 26+
+              (let ((rgb (dimmer-compute-rgb fg pct invert)))
+                (puthash key rgb dimmer-dimmed-faces)
+                rgb))))))
 
 (defun dimmer-dim-buffer (buf pct invert)
   "Dim all the faces defined in the buffer BUF.
@@ -152,10 +121,11 @@ in ‘dimmer-face-color’."
   (with-current-buffer buf
     (unless dimmer-buffer-face-remaps
       (dolist (f (face-list))
-        (when-let* ((c (dimmer-face-color f pct invert)))
-          (setq dimmer-buffer-face-remaps
-                (cons (face-remap-add-relative f :foreground c)
-                      dimmer-buffer-face-remaps)))))))
+        (let ((c (dimmer-face-color f pct invert)))
+          (if c   ; e.g. "(when-let* ((c (...)))" in Emacs 26
+              (setq dimmer-buffer-face-remaps
+                    (cons (face-remap-add-relative f :foreground c)
+                          dimmer-buffer-face-remaps))))))))
 
 (defun dimmer-restore-buffer (buf)
   "Restore the un-dimmed faces in the buffer BUF."
