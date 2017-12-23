@@ -59,6 +59,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; configuration
 
+(defgroup dimmer nil
+  "Highlight current-buffer by dimming faces on the others."
+  :prefix "dimmer-"
+  :group 'convenience
+  :link '(url-link :tag "GitHub" "https://github.com/gonewest818/dimmer.el"))
+
 (defcustom dimmer-percent 0.20
   "Control the degree to which buffers are dimmed (0.0 - 1.0)."
   :type '(float)
