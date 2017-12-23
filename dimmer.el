@@ -12,18 +12,15 @@
 ;;; Commentary:
 ;; 
 ;; This module provides a subtle visual indication which window is
-;; currently active by dimming the faces on the others.  It does this
+;; currently active by dimming the faces on the others. It does this
 ;; nondestructively, and computes the dimmed faces dynamically such
 ;; that your overall color scheme is shown in a muted form without
 ;; requiring you to define the "dim" versions of every face.
-;;
-;; The percentage of dimming is user configurable.  In addition, for
-;; users of "light" themes there is a dimmer-invert flag that adjusts
-;; the faces brighter (toward white, rather than toward black).
+;; The percentage of dimming is user configurable.
 ;;
 ;; Unlike the 'hiwin' module which has a similar goal, this module
-;; does *not* change the color of the background in any way.  It only
-;; adjusts foregrounds.  In the underlying implementation we do not
+;; does *not* change the color of the background in any way. It only
+;; adjusts foregrounds. In the underlying implementation we do not
 ;; use overlays, and therefore we avoid some of the visual problems
 ;; the hiwin module exhibits when highlighting interactive shells
 ;; and/or repls.
@@ -70,11 +67,6 @@
   :type '(float)
   :group 'dimmer)
 
-(defcustom dimmer-invert nil
-  "Invert the dimming for dark-on-light themes."
-  :type '(boolean)
-  :group 'dimmer)
-
 (defcustom dimmer-exclusion-regexp nil
   "Regular expression describing buffer names that are never dimmed."
   :type '(regexp)
@@ -92,6 +84,14 @@
 
 (defconst dimmer-last-buffer nil
   "Identity of the last buffer to be made current.")
+
+(defun dimmer-invert-p ()
+  "Determine if the dimmed faces should be brighter instead of darker."
+  (let* ((fg (face-foreground 'default))
+         (fgm (apply 'max (color-name-to-rgb fg)))
+         (bg (face-background 'default))
+         (bgm (apply 'max (color-name-to-rgb bg))))
+    (> bgm fgm)))
 
 (defun dimmer-compute-rgb (c pct invert)
   "Computes the color C when dimmed by percentage PCT.
@@ -158,7 +158,7 @@ in ‘dimmer-face-color’."
     (dolist (buf (dimmer-filtered-buffer-list))
       (if (eq buf selected)
           (dimmer-restore-buffer buf)
-        (dimmer-dim-buffer buf dimmer-percent dimmer-invert)))))
+        (dimmer-dim-buffer buf dimmer-percent (dimmer-invert-p))))))
 
 (defun dimmer-restore-all ()
   "Un-dim all buffers."

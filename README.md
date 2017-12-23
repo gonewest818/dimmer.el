@@ -13,9 +13,11 @@ nondestructively, and computes the dimmed faces dynamically such
 that your overall color scheme is shown in a muted form without
 requiring you to define the "dim" versions of every face.
 
-The percentage of dimming is user configurable.  In addition, for
-users of "light" themes there is a dimmer-invert flag that adjusts
-the faces brighter (toward white, rather than toward black).
+The *percentage* of dimming is user configurable.
+
+The *direction* of dimming is computed on the fly. For instance, if
+you have a dark theme then the dimmed face is darker, and if you have
+a light theme the dimmed face is lighter.
 
 Unlike the 'hiwin' module which has a similar goal, this module
 does *not* change the color of the background in any way.  It only
@@ -32,6 +34,9 @@ multiple windows displaying the same buffer they will dim or undim
 together. In my configuration I combine this package with
 `global-hl-line-mode` so that it's also clear which window is active.
 
+Users of light themes may need to increase `dimmer-percent` in order
+to see the effect.
+
 ## Demo
 
 ![Demo Video](https://github.com/gonewest818/dimmer.el/raw/master/doc/dimmer-demo.gif)
@@ -46,9 +51,6 @@ together. In my configuration I combine this package with
 `dimmer-percent` controls the degree to which unselected buffers are dimmed.
 Range is 0.0 - 1.0, and default is 0.20.  Increase value if you like the other
 buffers to be more dim.
-
-Set `dimmer-invert` to `t` if you have a dark-on-light theme such that your
-faces need to be *lighter* in order to appear dimmer onscreen.
 
 Use `dimmer-exclusion-regexp` to describe patterns for buffer names that
 should never be dimmed, for example, you could match buffers created by helm.
