@@ -85,6 +85,9 @@
 (defconst dimmer-last-buffer nil
   "Identity of the last buffer to be made current.")
 
+(defconst dimmer-debug-messages nil
+  "Enable debugging output to *Messages* buffer.")
+
 (defun dimmer-invert-p ()
   "Determine if the dimmed faces should be brighter instead of darker."
   (let* ((fg (face-foreground 'default))
@@ -167,11 +170,13 @@ in ‘dimmer-face-color’."
 
 (defun dimmer-command-hook ()
   "Process all buffers if current buffer has changed."
-  (unless (eq (current-buffer) dimmer-last-buffer)
+  (dimmer--dbg "dimmer-command-hook")
+  (unless (eq (window-buffer) dimmer-last-buffer)
     (dimmer-process-all)))
 
 (defun dimmer-config-change-hook ()
   "Process all buffers if window configuration has changed."
+  (dimmer--dbg "dimmer-config-change-hook")
   (dimmer-process-all))
 
 ;;;###autoload
@@ -212,6 +217,17 @@ in ‘dimmer-face-color’."
   (dimmer--debug-remaps name t)
   (redraw-display))
 
+(defun dimmer--dbg (label)
+  (if dimmer-debug-messages
+      (let ((inhibit-message t))
+        (message "%s: cb '%s' wb '%s' last '%s' %s"
+                 label
+                 (current-buffer)
+                 (window-buffer)
+                 dimmer-last-buffer
+                 (if (not (eq (current-buffer) (window-buffer)))
+                     "**"
+                   "")))))
 
 (provide 'dimmer)
 
