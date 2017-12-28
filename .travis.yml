@@ -22,11 +22,10 @@ env:
   global:
     - PATH=$HOME/local/bin:$HOME/local/evm/bin:$HOME/local/cask/bin:$PATH
   matrix:
-    - EMACS_BINARY=emacs-25.1-travis
-    - EMACS_BINARY=emacs-25.2-travis
-    - EMACS_BINARY=emacs-25.3-travis
-    - EMACS_BINARY=emacs-26-pretest-travis
-    - EMACS_BINARY=emacs-git-snapshot-travis
+    - EMACS_BINARY=emacs-25.3-travis TEST=ci-checkdoc
+    - EMACS_BINARY=emacs-25.3-travis TEST=ci-bytecomp
+    - EMACS_BINARY=emacs-26-pretest-travis TEST=ci-bytecomp
+    - EMACS_BINARY=emacs-git-snapshot-travis TEST=ci-bytecomp
 
 before_script:
   - sh travis-ci/install-gnutls.sh
@@ -36,5 +35,4 @@ before_script:
   - sh travis-ci/install-cask.sh
 
 script:
-  - emacs --version
-  - cask build
+  - make $(TEST)
