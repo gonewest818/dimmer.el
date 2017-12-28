@@ -54,3 +54,11 @@ buffers to be more dim.
 
 Use `dimmer-exclusion-regexp` to describe patterns for buffer names that
 should never be dimmed, for example, you could match buffers created by helm.
+
+
+## License
+
+Copyright (C) 2017 Neil Okamoto
+
+Distributed under the GNU General Public License, Version 3
+

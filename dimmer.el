@@ -1,5 +1,7 @@
 ;;; dimmer.el --- visually highlight the selected buffer
-;; 
+
+;; Copyright (C) 2017 Neil Okamoto
+
 ;; Filename: dimmer.el
 ;; Author: Neil Okamoto
 ;; Version: 0.2.0-SNAPSHOT
