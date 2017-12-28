@@ -102,14 +102,12 @@
 (defun dimmer-compute-rgb (c pct invert)
   "Computes the color C when dimmed by percentage PCT.
 When INVERT is true, make the value brighter rather than darker."
-  (if invert
-      (apply 'color-rgb-to-hex
-             (mapcar (lambda (x) (- 1.0 (* (- 1.0 x)
-                                           (- 1.0 pct))))
-                     (color-name-to-rgb c)))
-    (apply 'color-rgb-to-hex
-           (mapcar (lambda (x) (* x (- 1.0 pct)))
-                   (color-name-to-rgb c)))))
+  (apply 'color-rgb-to-hex
+         (mapcar
+          (if invert
+              (lambda (x) (- 1.0 (* (- 1.0 x) (- 1.0 pct))))
+            (lambda (x) (* x (- 1.0 pct))))
+          (color-name-to-rgb c))))
 
 (defun dimmer-face-color (f pct invert)
   "Compute a dimmed version of the foreground color of face F.
