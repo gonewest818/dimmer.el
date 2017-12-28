@@ -12,15 +12,15 @@
 ;;; Commentary:
 ;; 
 ;; This module provides a subtle visual indication which window is
-;; currently active by dimming the faces on the others. It does this
+;; currently active by dimming the faces on the others.  It does this
 ;; nondestructively, and computes the dimmed faces dynamically such
 ;; that your overall color scheme is shown in a muted form without
 ;; requiring you to define the "dim" versions of every face.
 ;; The percentage of dimming is user configurable.
 ;;
 ;; Unlike the 'hiwin' module which has a similar goal, this module
-;; does *not* change the color of the background in any way. It only
-;; adjusts foregrounds. In the underlying implementation we do not
+;; does *not* change the color of the background in any way.  It only
+;; adjusts foregrounds.  In the underlying implementation we do not
 ;; use overlays, and therefore we avoid some of the visual problems
 ;; the hiwin module exhibits when highlighting interactive shells
 ;; and/or repls.
@@ -231,6 +231,7 @@ in ‘dimmer-face-color’."
   (redraw-display))
 
 (defun dimmer--dbg (label)
+  "Print a debug state with the given LABEL."
   (if dimmer-debug-messages
       (let ((inhibit-message t))
         (message "%s: cb '%s' wb '%s' last '%s' %s"
