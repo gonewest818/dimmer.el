@@ -146,14 +146,16 @@ in ‘dimmer-face-color’."
       (setq dimmer-buffer-face-remaps nil))))
 
 (defun dimmer-filtered-buffer-list ()
-  "Get filtered subset of all buffers."
-  (seq-filter
-   (lambda (buf)
-     (let ((name (buffer-name buf)))
-       (not (or (eq ?\s (elt name 0)) ; leading space
-                (and dimmer-exclusion-regexp
-                     (string-match-p dimmer-exclusion-regexp name))))))
-   (buffer-list)))
+  "Get filtered subset of all visible buffers in the current frame."
+  (let (buffers)
+    (walk-windows
+     (lambda (win)
+       (let* ((buf (window-buffer win))
+              (name (buffer-name buf)))
+         (unless (and dimmer-exclusion-regexp
+                      (string-match-p dimmer-exclusion-regexp name))
+           (push buf buffers)))))
+    buffers))
 
 (defun dimmer-process-all ()
   "Process all buffers and dim or un-dim each."
@@ -166,8 +168,7 @@ in ‘dimmer-face-color’."
 
 (defun dimmer-restore-all ()
   "Un-dim all buffers."
-  (dolist (buf (dimmer-filtered-buffer-list))
-    (dimmer-restore-buffer buf)))
+  (mapc 'dimmer-restore-buffer (buffer-list)))
 
 (defun dimmer-command-hook ()
   "Process all buffers if current buffer has changed."
