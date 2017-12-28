@@ -182,19 +182,31 @@ in ‘dimmer-face-color’."
   (dimmer-process-all))
 
 ;;;###autoload
+(define-minor-mode dimmer-mode
+  "visually highlight the selected buffer"
+  nil
+  :lighter ""
+  :global t
+  :require 'dimmer
+  (if dimmer-mode
+      (progn
+        (add-hook 'post-command-hook 'dimmer-command-hook)
+        (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
+    (remove-hook 'post-command-hook 'dimmer-command-hook)
+    (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
+    (dimmer-restore-all)))
+
+;;;###autoload
 (defun dimmer-activate ()
   "Activate the dimmer."
   (interactive)
-  (add-hook 'post-command-hook 'dimmer-command-hook)
-  (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
+  (dimmer-mode 1))
 
 ;;;###autoload
 (defun dimmer-deactivate ()
   "Deactivate the dimmer and restore all buffers to normal faces."
   (interactive)
-  (remove-hook 'post-command-hook 'dimmer-command-hook)
-  (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
-  (dimmer-restore-all))
+  (dimmer-mode 0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; debugging - call from *scratch*, ielm, or eshell
