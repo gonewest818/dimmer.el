@@ -6,7 +6,7 @@ version:
 	$(CASK) emacs --version
 
 ci-bytecomp: version
-	$(CASK) emacs --batch -l test/ci-bytecomp.el
+	$(CASK) emacs -Q --batch -l test/ci-bytecomp.el
 
 ci-checkdoc: version
 	$(CASK) emacs -Q --batch --eval '(checkdoc-file "dimmer.el")' 2>&1 \
