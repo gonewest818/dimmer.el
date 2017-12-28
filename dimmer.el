@@ -197,16 +197,7 @@ in ‘dimmer-face-color’."
     (dimmer-restore-all)))
 
 ;;;###autoload
-(defun dimmer-activate ()
-  "Activate the dimmer."
-  (interactive)
-  (dimmer-mode 1))
-
-;;;###autoload
-(defun dimmer-deactivate ()
-  "Deactivate the dimmer and restore all buffers to normal faces."
-  (interactive)
-  (dimmer-mode 0))
+(define-obsolete-function-alias 'dimmer-activate 'dimmer-mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; debugging - call from *scratch*, ielm, or eshell

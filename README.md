@@ -43,8 +43,8 @@ to see the effect.
 
 ## Usage
 
-     (require 'dimmer)
-     (dimmer-activate)
+     (require 'dimmer) ; unless installed as a package
+     (dimmer-mode)
 
 ## Customization
 
