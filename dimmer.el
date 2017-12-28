@@ -121,10 +121,10 @@ for dark-on-light themes."
                      (if invert "-t" "-nil"))))
     (or (gethash key dimmer-dimmed-faces)
         (let ((fg (face-foreground f)))
-          (if fg  ; e.g. "(when-let* ((fg (...)))" in Emacs 26+
-              (let ((rgb (dimmer-compute-rgb fg pct invert)))
-                (puthash key rgb dimmer-dimmed-faces)
-                rgb))))))
+          (when fg  ; e.g. "(when-let* ((fg (...)))" in Emacs 26+
+            (let ((rgb (dimmer-compute-rgb fg pct invert)))
+              (puthash key rgb dimmer-dimmed-faces)
+              rgb))))))
 
 (defun dimmer-dim-buffer (buf pct invert)
   "Dim all the faces defined in the buffer BUF.
@@ -134,10 +134,10 @@ in ‘dimmer-face-color’."
     (unless dimmer-buffer-face-remaps
       (dolist (f (face-list))
         (let ((c (dimmer-face-color f pct invert)))
-          (if c   ; e.g. "(when-let* ((c (...)))" in Emacs 26
-              (setq dimmer-buffer-face-remaps
-                    (cons (face-remap-add-relative f :foreground c)
-                          dimmer-buffer-face-remaps))))))))
+          (when c  ; e.g. "(when-let* ((c (...)))" in Emacs 26
+            (setq dimmer-buffer-face-remaps
+                  (cons (face-remap-add-relative f :foreground c)
+                        dimmer-buffer-face-remaps))))))))
 
 (defun dimmer-restore-buffer (buf)
   "Restore the un-dimmed faces in the buffer BUF."
