@@ -52,6 +52,7 @@
 (require 'subr-x)
 (require 'color)
 (require 'face-remap)
+(require 'seq)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; configuration
