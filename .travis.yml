@@ -35,4 +35,4 @@ before_script:
   - sh travis-ci/install-cask.sh
 
 script:
-  - make $(TEST)
+  - make $TEST
