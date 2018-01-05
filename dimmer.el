@@ -119,22 +119,27 @@
   "Enable debugging output to *Messages* buffer.")
 
 (defun dimmer-invert-p ()
-  "Determine if the dimmed faces should be brighter instead of darker."
-  (let* ((fg (face-foreground 'default))
-         (fgm (apply 'max (color-name-to-rgb fg)))
-         (bg (face-background 'default))
-         (bgm (apply 'max (color-name-to-rgb bg))))
-    (> bgm fgm)))
+  "Determine if the dimmed faces should be brighter instead of darker.
+The decision is based by comparing the max RGB value of the
+background and foreground of the default face.  If the background
+color is brighter then we return t, else nil."
+  (let ((fg (color-name-to-rgb (face-foreground 'default)))
+        (bg (color-name-to-rgb (face-background 'default))))
+    (if (and fg bg)
+        (> (apply 'max bg) (apply 'max fg))
+      (error "Cannot determine rgb values for face 'default"))))
 
 (defun dimmer-compute-rgb (c pct invert)
   "Computes the color C when dimmed by percentage PCT.
 When INVERT is true, make the value brighter rather than darker."
-  (apply 'color-rgb-to-hex
-         (mapcar
-          (if invert
-              (lambda (x) (- 1.0 (* (- 1.0 x) (- 1.0 pct))))
-            (lambda (x) (* x (- 1.0 pct))))
-          (color-name-to-rgb c))))
+  (let ((rgb (color-name-to-rgb c)))
+    (when rgb
+      (apply 'color-rgb-to-hex
+             (mapcar
+              (if invert
+                  (lambda (x) (- 1.0 (* (- 1.0 x) (- 1.0 pct))))
+                (lambda (x) (* x (- 1.0 pct))))
+              rgb)))))
 
 (defun dimmer-face-color (f pct invert)
   "Compute a dimmed version of the foreground color of face F.
@@ -148,8 +153,9 @@ for dark-on-light themes."
         (let ((fg (face-foreground f)))
           (when fg  ; e.g. "(when-let* ((fg (...)))" in Emacs 26+
             (let ((rgb (dimmer-compute-rgb fg pct invert)))
-              (puthash key rgb dimmer-dimmed-faces)
-              rgb))))))
+              (when rgb
+                (puthash key rgb dimmer-dimmed-faces)
+                rgb)))))))
 
 (defun dimmer-dim-buffer (buf pct invert)
   "Dim all the faces defined in the buffer BUF.
