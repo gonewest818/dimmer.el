@@ -41,7 +41,7 @@
 ;; `global-hl-line-mode` so that it's also clear which window is
 ;; active.
 ;; 
-;; Users of light themes may need to increase `dimmer-percent` in
+;; Users of light themes may need to increase `dimmer-fraction` in
 ;; order to see the effect.
 ;; 
 ;; Usage:
@@ -51,7 +51,7 @@
 ;; 
 ;; Customization:
 ;; 
-;; `dimmer-percent` controls the degree to which unselected buffers
+;; `dimmer-fraction` controls the degree to which unselected buffers
 ;; are dimmed.  Range is 0.0 - 1.0, and default is 0.20.  Increase
 ;; value if you like the other buffers to be more dim.
 ;; 
@@ -92,10 +92,11 @@
   :group 'convenience
   :link '(url-link :tag "GitHub" "https://github.com/gonewest818/dimmer.el"))
 
-(defcustom dimmer-percent 0.20
+(defcustom dimmer-fraction 0.20
   "Control the degree to which buffers are dimmed (0.0 - 1.0)."
   :type '(float)
   :group 'dimmer)
+(define-obsolete-variable-alias 'dimmer-percent 'dimmer-fraction)
 
 (defcustom dimmer-exclusion-regexp nil
   "Regular expression describing buffer names that are never dimmed."
@@ -197,7 +198,7 @@ in ‘dimmer-face-color’."
     (dolist (buf (dimmer-filtered-buffer-list))
       (if (eq buf selected)
           (dimmer-restore-buffer buf)
-        (dimmer-dim-buffer buf dimmer-percent (dimmer-invert-p))))))
+        (dimmer-dim-buffer buf dimmer-fraction (dimmer-invert-p))))))
 
 (defun dimmer-restore-all ()
   "Un-dim all buffers."
