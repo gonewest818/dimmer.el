@@ -173,8 +173,7 @@ in ‘dimmer-face-color’."
   "Restore the un-dimmed faces in the buffer BUF."
   (with-current-buffer buf
     (when dimmer-buffer-face-remaps
-      (dolist (c dimmer-buffer-face-remaps)
-        (face-remap-remove-relative c))
+      (mapc 'face-remap-remove-relative dimmer-buffer-face-remaps)
       (setq dimmer-buffer-face-remaps nil))))
 
 (defun dimmer-filtered-buffer-list ()
