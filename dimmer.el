@@ -147,12 +147,10 @@ When INVERT is true, make the value brighter rather than darker."
 PCT is the amount of dimming where 0.0 is no change and 1.0 is
 maximum change.  When INVERT is not nil, invert the scaling
 for dark-on-light themes."
-  (let ((key (concat (symbol-name f) "-"
-                     (number-to-string pct)
-                     (if invert "-t" "-nil"))))
-    (or (gethash key dimmer-dimmed-faces)
-        (let ((fg (face-foreground f)))
-          (when fg  ; e.g. "(when-let* ((fg (...)))" in Emacs 26+
+  (let ((fg (face-foreground f)))
+    (when (and fg (color-defined-p fg))
+      (let ((key (format "%s-%f-%S" fg pct invert)))
+        (or (gethash key dimmer-dimmed-faces)
             (let ((rgb (dimmer-compute-rgb fg pct invert)))
               (when rgb
                 (puthash key rgb dimmer-dimmed-faces)
