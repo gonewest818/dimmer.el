@@ -127,7 +127,8 @@ color is brighter then we return t, else nil."
   (let ((fg (color-name-to-rgb (face-foreground 'default)))
         (bg (color-name-to-rgb (face-background 'default))))
     (if (and fg bg)
-        (> (apply 'max bg) (apply 'max fg))
+        (> (nth 2 (apply 'color-rgb-to-hsl bg))
+           (nth 2 (apply 'color-rgb-to-hsl fg)))
       (error "Cannot determine rgb values for face 'default"))))
 
 (defun dimmer-compute-rgb (c frac invert)
