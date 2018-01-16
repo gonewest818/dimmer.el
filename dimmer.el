@@ -170,7 +170,7 @@ in ‘dimmer-face-color’."
       (setq dimmer-buffer-face-remaps nil))))
 
 (defun dimmer-filtered-buffer-list ()
-  "Get filtered subset of all visible buffers in the current frame."
+  "Get filtered subset of all visible buffers in all frames."
   (let (buffers)
     (walk-windows
      (lambda (win)
@@ -178,7 +178,9 @@ in ‘dimmer-face-color’."
               (name (buffer-name buf)))
          (unless (and dimmer-exclusion-regexp
                       (string-match-p dimmer-exclusion-regexp name))
-           (push buf buffers)))))
+           (push buf buffers))))
+     nil
+     t)
     buffers))
 
 (defun dimmer-process-all ()
@@ -189,6 +191,13 @@ in ‘dimmer-face-color’."
       (if (eq buf selected)
           (dimmer-restore-buffer buf)
         (dimmer-dim-buffer buf dimmer-fraction (dimmer-invert-p))))))
+
+(defun dimmer-dim-all ()
+  "Dim all buffers."
+  (dimmer--dbg "dimmer-dim-all")
+  (mapc (lambda (buf)
+          (dimmer-dim-buffer buf dimmer-fraction (dimmer-invert-p)))
+        (buffer-list)))
 
 (defun dimmer-restore-all ()
   "Un-dim all buffers."
@@ -214,8 +223,12 @@ in ‘dimmer-face-color’."
   :require 'dimmer
   (if dimmer-mode
       (progn
+        (add-hook 'focus-in-hook 'dimmer-config-change-hook)
+        (add-hook 'focus-out-hook 'dimmer-dim-all)
         (add-hook 'post-command-hook 'dimmer-command-hook)
         (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
+    (remove-hook 'focus-in-hook 'dimmer-config-change-hook)
+    (remove-hook 'focus-out-hook 'dimmer-dim-all)
     (remove-hook 'post-command-hook 'dimmer-command-hook)
     (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
     (dimmer-restore-all)))
