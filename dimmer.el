@@ -71,10 +71,11 @@
 ;; 
 ;;; Code:
 
-(require 'subr-x)
+(require 'cl)
 (require 'color)
 (require 'face-remap)
 (require 'seq)
+(require 'subr-x)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; configuration
@@ -123,17 +124,89 @@ color is brighter then we return t, else nil."
         (> (apply 'max bg) (apply 'max fg))
       (error "Cannot determine rgb values for face 'default"))))
 
+(defun dimmer-lerp (v0 v1 frac)
+  "Compute linear interpolation (\"lerp\") of V0 and V1 with FRAC."
+  (+ (* v0 (- 1.0 frac))
+     (* v1 frac)))
+
 (defun dimmer-compute-rgb (c frac invert)
-  "Computes the color C when dimmed by fraction FRAC.
-When INVERT is true, make the value brighter rather than darker."
-  (let ((rgb (color-name-to-rgb c)))
-    (when rgb
+  "Compute \"dimming\" by linear interpolation between color C
+and the default face's background with FRAC controlling the
+interpolation.
+
+When FRAC is 0.0, the result is equal to C.
+When FRAC is 1.0, the result is equal to the background.
+
+Any other value for FRAC means the result's hue, saturation, and
+value will be adjusted linearly so that the color sits somewhere
+between C and the background.
+
+Mathematically: the resulting color C' sits on the line segment
+connecting the color C and the background (of the `default`
+face), such that the Euclidian distance between C and C' is FRAC
+times the distance between C to bg."
+  (let ((fg (color-name-to-rgb c))
+        (bg (color-name-to-rgb (face-background 'default))))
+    (when (and fg bg)
       (apply 'color-rgb-to-hex
-             (mapcar
-              (if invert
-                  (lambda (x) (- 1.0 (* (- 1.0 x) (- 1.0 frac))))
-                (lambda (x) (* x (- 1.0 frac))))
-              rgb)))))
+             (cl-mapcar (lambda (f b)
+                          (dimmer-lerp f b frac))
+                        fg
+                        bg)))))
+
+(defun dimmer-compute-rgb-in-HSL-space (c frac invert)
+  "Compute \"dimming\" by linear interpolation between color C
+and the default face's background with FRAC controlling the
+interpolation.
+
+When FRAC is 0.0, the result is equal to C.
+When FRAC is 1.0, the result is equal to the background.
+
+Any other value for FRAC means the result's hue, saturation, and
+value will be adjusted linearly so that the color sits somewhere
+between C and the background.
+
+Mathematically: the resulting color C' sits on the line segment
+connecting the color C and the background (of the `default`
+face), such that the Euclidian distance between C and C' is FRAC
+times the distance between C to bg. We perform this transformation
+in HSL space."
+  (let ((fg (color-name-to-rgb c))
+        (bg (color-name-to-rgb (face-background 'default))))
+    (when (and fg bg)
+      (apply 'color-rgb-to-hex
+             (apply 'color-hsl-to-rgb
+                    (cl-mapcar (lambda (f b)
+                                 (dimmer-lerp f b frac))
+                               (apply 'color-rgb-to-hsl fg)
+                               (apply 'color-rgb-to-hsl bg)))))))
+
+(defun dimmer-compute-rgb-in-LAB-space (c frac invert)
+  "Compute \"dimming\" by linear interpolation between color C
+and the default face's background with FRAC controlling the
+interpolation.
+
+When FRAC is 0.0, the result is equal to C.
+When FRAC is 1.0, the result is equal to the background.
+
+Any other value for FRAC means the result's hue, saturation, and
+value will be adjusted linearly so that the color sits somewhere
+between C and the background.
+
+Mathematically: the resulting color C' sits on the line segment
+connecting the color C and the background (of the `default`
+face), such that the Euclidian distance between C and C' is FRAC
+times the distance between C to bg. We perform this transformation
+in the CIELAB 1976 color space."
+  (let ((fg (color-name-to-rgb c))
+        (bg (color-name-to-rgb (face-background 'default))))
+    (when (and fg bg)
+      (apply 'color-rgb-to-hex
+             (apply 'color-lab-to-srgb
+                    (cl-mapcar (lambda (f b)
+                                 (dimmer-lerp f b frac))
+                               (apply 'color-srgb-to-lab fg)
+                               (apply 'color-srgb-to-lab bg)))))))
 
 (defun dimmer-face-color (f frac invert)
   "Compute a dimmed version of the foreground color of face F.
