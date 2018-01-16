@@ -120,24 +120,20 @@ color is brighter then we return t, else nil."
   (let ((fg (color-name-to-rgb (face-foreground 'default)))
         (bg (color-name-to-rgb (face-background 'default))))
     (if (and fg bg)
-        (> (apply 'max bg) (apply 'max fg))
+        (> (nth 2 (apply 'color-rgb-to-hsl bg))
+           (nth 2 (apply 'color-rgb-to-hsl fg)))
       (error "Cannot determine rgb values for face 'default"))))
 
-(defun dimmer-compute-rgb (c pct invert)
-  "Computes the color C when dimmed by percentage PCT.
+(defun dimmer-compute-rgb (c frac invert)
+  "Computes the color C when dimmed by fraction FRAC.
 When INVERT is true, make the value brighter rather than darker."
-  (let ((rgb (color-name-to-rgb c)))
-    (when rgb
-      (apply 'color-rgb-to-hex
-             (mapcar
-              (if invert
-                  (lambda (x) (- 1.0 (* (- 1.0 x) (- 1.0 pct))))
-                (lambda (x) (* x (- 1.0 pct))))
-              rgb)))))
+  (let ((percent (* 100 frac (if invert 1 -1))))
+    (color-desaturate-name (color-lighten-name c percent)
+                           (/ (abs percent) 2))))
 
-(defun dimmer-face-color (f pct invert)
+(defun dimmer-face-color (f frac invert)
   "Compute a dimmed version of the foreground color of face F.
-PCT is the amount of dimming where 0.0 is no change and 1.0 is
+FRAC is the amount of dimming where 0.0 is no change and 1.0 is
 maximum change.  When INVERT is not nil, invert the scaling
 for dark-on-light themes."
   (let ((fg (face-foreground f)))
@@ -149,14 +145,14 @@ for dark-on-light themes."
                 (puthash key rgb dimmer-dimmed-faces)
                 rgb)))))))
 
-(defun dimmer-dim-buffer (buf pct invert)
+(defun dimmer-dim-buffer (buf frac invert)
   "Dim all the faces defined in the buffer BUF.
-PCT and INVERT controls the dimming as defined
+FRAC and INVERT controls the dimming as defined
 in ‘dimmer-face-color’."
   (with-current-buffer buf
     (unless dimmer-buffer-face-remaps
       (dolist (f (face-list))
-        (let ((c (dimmer-face-color f pct invert)))
+        (let ((c (dimmer-face-color f frac invert)))
           (when c  ; e.g. "(when-let* ((c (...)))" in Emacs 26
             (setq dimmer-buffer-face-remaps
                   (cons (face-remap-add-relative f :foreground c)
