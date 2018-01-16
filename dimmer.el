@@ -25,13 +25,6 @@
 ;; if you have a dark theme then the dimmed face is darker, and if you
 ;; have a light theme the dimmed face is lighter.
 ;; 
-;; Unlike the 'hiwin' module which has a similar goal, this module
-;; does *not* change the color of the background in any way.  It only
-;; adjusts foregrounds.  In the underlying implementation we do not
-;; use overlays, and therefore we avoid some of the visual problems
-;; the hiwin module exhibits when highlighting interactive shells
-;; and/or repls.
-;; 
 ;; Caveats:
 ;; 
 ;; This module makes use of the `face-remap-*` APIs in Emacs and these
@@ -233,14 +226,14 @@ in ‘dimmer-face-color’."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; debugging - call from *scratch*, ielm, or eshell
 
-(defun dimmer--debug-remaps (name &optional clear)
+(defun dimmer--debug-face-remapping-alist (name &optional clear)
   "Display 'face-remapping-alist' for buffer NAME (or clear if CLEAR)."
   (with-current-buffer name
     (if clear
         (setq face-remapping-alist nil)
       face-remapping-alist)))
 
-(defun dimmer--debug-hash (name &optional clear)
+(defun dimmer--debug-buffer-face-remaps (name &optional clear)
   "Display 'dimmer-buffer-face-remaps' for buffer NAME (or clear if CLEAR)."
   (with-current-buffer name
     (if clear
@@ -249,8 +242,8 @@ in ‘dimmer-face-color’."
 
 (defun dimmer--debug-reset (name)
   "Clear 'face-remapping-alist' and 'dimmer-buffer-face-remaps' for NAME."
-  (dimmer--debug-hash name t)
-  (dimmer--debug-remaps name t)
+  (dimmer--debug-face-remapping-alist name t)
+  (dimmer--debug-buffer-face-remaps name t)
   (redraw-display))
 
 (defun dimmer--dbg (label)

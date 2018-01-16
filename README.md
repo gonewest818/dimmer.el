@@ -35,7 +35,7 @@ multiple windows displaying the same buffer they will dim or undim
 together. In my configuration I combine this package with
 `global-hl-line-mode` so that it's also clear which window is active.
 
-Users of light themes may need to increase `dimmer-percent` in order
+Users of light themes may need to increase `dimmer-fraction` in order
 to see the effect.
 
 ## Demo
@@ -49,7 +49,7 @@ to see the effect.
 
 ## Customization
 
-`dimmer-percent` controls the degree to which unselected buffers are dimmed.
+`dimmer-fraction` controls the degree to which unselected buffers are dimmed.
 Range is 0.0 - 1.0, and default is 0.20.  Increase value if you like the other
 buffers to be more dim.
 
@@ -59,7 +59,7 @@ should never be dimmed, for example, you could match buffers created by helm.
 
 ## License
 
-Copyright (C) 2017 Neil Okamoto
+Copyright (C) 2017-2018 Neil Okamoto
 
 Distributed under the GNU General Public License, Version 3
 
