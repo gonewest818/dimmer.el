@@ -185,17 +185,20 @@ between C and the background.
 Mathematically: the resulting color C' sits on the line segment
 connecting the color C and the background (of the `default`
 face), such that the Euclidian distance between C and C' is FRAC
-times the distance between C to bg. We perform this transformation
-in the CIELAB 1976 color space."
+times the distance between C to bg. We perform this
+transformation in the CIELAB 1976 color space. When we convert
+back to RGB the channels are simply clamped if they fall outside
+the normal 0.0-1.0 range."
   (let ((fg (color-name-to-rgb c))
         (bg (color-name-to-rgb (face-background 'default))))
     (when (and fg bg)
       (apply 'color-rgb-to-hex
-             (apply 'color-lab-to-srgb
-                    (cl-mapcar (lambda (f b)
-                                 (dimmer-lerp f b frac))
-                               (apply 'color-srgb-to-lab fg)
-                               (apply 'color-srgb-to-lab bg)))))))
+             (mapcar 'color-clamp
+                     (apply 'color-lab-to-srgb
+                            (cl-mapcar (lambda (f b)
+                                         (dimmer-lerp f b frac))
+                                       (apply 'color-srgb-to-lab fg)
+                                       (apply 'color-srgb-to-lab bg))))))))
 
 (defalias 'dimmer-compute-rgb 'dimmer-compute-rgb-in-LAB-space)
 
