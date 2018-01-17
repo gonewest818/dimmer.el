@@ -113,91 +113,75 @@
 (defconst dimmer-debug-messages nil
   "Enable debugging output to *Messages* buffer.")
 
-(defun dimmer-lerp (v0 v1 frac)
-  "Compute linear interpolation (\"lerp\") of V0 and V1 with FRAC."
+(defun dimmer-lerp (frac v0 v1)
+  "Use FRAC to compute a linear interpolation of V0 and V1."
   (+ (* v0 (- 1.0 frac))
      (* v1 frac)))
 
-(defun dimmer-compute-rgb-in-RGB-space (c frac)
+(defun dimmer-compute-rgb-in-RGB-space (fg bg frac)
   "Compute \"dimming\" by linear interpolation in RGB space.
-Blends the color C and the default face's background with FRAC
-controlling the interpolation.
+Blends the foreground FG and the background BG using FRAC to
+control the interpolation.
 
-When FRAC is 0.0, the result is equal to C.
-When FRAC is 1.0, the result is equal to the background.
+When FRAC is 0.0, the result is equal to FG.
+When FRAC is 1.0, the result is equal to BG.
 
 Any other value for FRAC means the result's hue, saturation, and
 value will be adjusted linearly so that the color sits somewhere
-between C and the background.
+between FG and BG.
 
-Mathematically: the resulting color C' sits on the line segment
-connecting the color C and the background (of the `default`
-face), such that the Euclidian distance between C and C' is FRAC
-times the distance between C and bg."
-  (let ((fg (color-name-to-rgb c))
-        (bg (color-name-to-rgb (face-background 'default))))
-    (when (and fg bg)
-      (apply 'color-rgb-to-hex
-             (cl-mapcar (lambda (f b)
-                          (dimmer-lerp f b frac))
-                        fg
-                        bg)))))
+Mathematically: the resulting color C sits on the line segment
+connecting the colors FG and BG such that the Euclidian distance
+between FG and C is FRAC times the distance between FG and BG."
+  (apply 'color-rgb-to-hex
+         (cl-mapcar (apply-partially 'dimmer-lerp frac) fg bg)))
 
-(defun dimmer-compute-rgb-in-HSL-space (c frac)
+(defun dimmer-compute-rgb-in-HSL-space (fg bg frac)
   "Compute \"dimming\" by linear interpolation in HSL space.
-Blends the color C and the default face's background with FRAC
-controlling the interpolation.
+Blends the foreground FG and the background BG using FRAC to
+control the interpolation.
 
-When FRAC is 0.0, the result is equal to C.
-When FRAC is 1.0, the result is equal to the background.
+When FRAC is 0.0, the result is equal to FG.
+When FRAC is 1.0, the result is equal to BG.
 
 Any other value for FRAC means the result's hue, saturation, and
 value will be adjusted linearly so that the color sits somewhere
-between C and the background.
+between FG and BG.
 
-Mathematically: the resulting color C' sits on the line segment
-connecting the color C and the background (of the `default`
-face), such that the Euclidian distance between C and C' is FRAC
-times the distance between C and bg."
-  (let ((fg (color-name-to-rgb c))
-        (bg (color-name-to-rgb (face-background 'default))))
-    (when (and fg bg)
-      (apply 'color-rgb-to-hex
-             (apply 'color-hsl-to-rgb
-                    (cl-mapcar (lambda (f b)
-                                 (dimmer-lerp f b frac))
-                               (apply 'color-rgb-to-hsl fg)
-                               (apply 'color-rgb-to-hsl bg)))))))
+Mathematically: the resulting color C sits on the line segment
+connecting the colors FG and BG such that the Euclidian distance
+between FG and C is FRAC times the distance between FG and BG."
+  (apply 'color-rgb-to-hex
+         (apply 'color-hsl-to-rgb
+                (cl-mapcar (apply-partially 'dimmer-lerp frac)
+                           (apply 'color-rgb-to-hsl fg)
+                           (apply 'color-rgb-to-hsl bg)))))
 
-(defun dimmer-compute-rgb-in-LAB-space (c frac)
+(defun dimmer-compute-rgb-in-LAB-space (fg bg frac)
   "Compute \"dimming\" by linear interpolation in CIELAB space.
-Blends the color C and the default face's background with FRAC
-controlling the interpolation.
+Blends the foreground FG and the background BG using FRAC to
+control the interpolation.
 
-When FRAC is 0.0, the result is equal to C.
-When FRAC is 1.0, the result is equal to the background.
+When FRAC is 0.0, the result is equal to FG.
+When FRAC is 1.0, the result is equal to BG.
 
 Any other value for FRAC means the result's hue, saturation, and
 value will be adjusted linearly so that the color sits somewhere
-between C and the background.
+between FG and BG.
 
-Mathematically: the resulting color C' sits on the line segment
-connecting the color C and the background (of the `default`
-face), such that the Euclidian distance between C and C' is FRAC
-times the distance between C and bg. We perform this
-transformation in the CIELAB 1976 color space. In practice this
-can lead to colors outside the range 0-255, so when we convert
-back to RGB the channel values are clamped."
-  (let ((fg (color-name-to-rgb c))
-        (bg (color-name-to-rgb (face-background 'default))))
-    (when (and fg bg)
-      (apply 'color-rgb-to-hex
-             (mapcar 'color-clamp
-                     (apply 'color-lab-to-srgb
-                            (cl-mapcar (lambda (f b)
-                                         (dimmer-lerp f b frac))
-                                       (apply 'color-srgb-to-lab fg)
-                                       (apply 'color-srgb-to-lab bg))))))))
+Mathematically: the resulting color C sits on the line segment
+connecting the colors FG and BG such that the Euclidian distance
+between FG and C is FRAC times the distance between FG and BG. We
+perform this transformation in the CIELAB 1976 color space. In
+practice, operations in CIELAB space can lead to colors outside
+the range 0-255; therefore we must clamp the channel values as we
+convert back to RGB."
+  (apply 'color-rgb-to-hex
+         (mapcar 'color-clamp
+                 (apply 'color-lab-to-srgb
+                        (cl-mapcar (apply-partially 'dimmer-lerp frac)
+                                   (apply 'color-srgb-to-lab fg)
+                                   (apply 'color-srgb-to-lab bg))))))
 
 (defalias 'dimmer-compute-rgb 'dimmer-compute-rgb-in-LAB-space)
 
@@ -205,11 +189,15 @@ back to RGB the channel values are clamped."
   "Compute a dimmed version of the foreground color of face F.
 FRAC is the amount of dimming where 0.0 is no change and 1.0 is
 maximum change."
-  (let ((fg (face-foreground f)))
-    (when (and fg (color-defined-p fg))
-      (let ((key (format "%s-%f" fg frac)))
+  (let ((fg (face-foreground f))
+        (bg (face-background 'default)))
+    (when (and fg (color-defined-p fg)
+               bg (color-defined-p bg))
+      (let ((key (format "%s-%s-%f" fg bg frac)))
         (or (gethash key dimmer-dimmed-faces)
-            (let ((rgb (dimmer-compute-rgb fg frac)))
+            (let ((rgb (dimmer-compute-rgb (color-name-to-rgb fg)
+                                           (color-name-to-rgb bg)
+                                           frac)))
               (when rgb
                 (puthash key rgb dimmer-dimmed-faces)
                 rgb)))))))
@@ -222,9 +210,8 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
       (dolist (f (face-list))
         (let ((c (dimmer-face-color f frac)))
           (when c  ; e.g. "(when-let* ((c (...)))" in Emacs 26
-            (setq dimmer-buffer-face-remaps
-                  (cons (face-remap-add-relative f :foreground c)
-                        dimmer-buffer-face-remaps))))))))
+            (push (face-remap-add-relative f :foreground c)
+                  dimmer-buffer-face-remaps)))))))
 
 (defun dimmer-restore-buffer (buf)
   "Restore the un-dimmed faces in the buffer BUF."
