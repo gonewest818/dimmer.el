@@ -71,7 +71,7 @@
 ;; 
 ;;; Code:
 
-(require 'cl)
+(require 'cl-lib)
 (require 'color)
 (require 'face-remap)
 (require 'seq)
@@ -119,9 +119,9 @@
      (* v1 frac)))
 
 (defun dimmer-compute-rgb-in-RGB-space (c frac)
-  "Compute \"dimming\" by linear interpolation between color C
-and the default face's background with FRAC controlling the
-interpolation.
+  "Compute \"dimming\" by linear interpolation in RGB space.
+Blends the color C and the default face's background with FRAC
+controlling the interpolation.
 
 When FRAC is 0.0, the result is equal to C.
 When FRAC is 1.0, the result is equal to the background.
@@ -133,7 +133,7 @@ between C and the background.
 Mathematically: the resulting color C' sits on the line segment
 connecting the color C and the background (of the `default`
 face), such that the Euclidian distance between C and C' is FRAC
-times the distance between C to bg."
+times the distance between C and bg."
   (let ((fg (color-name-to-rgb c))
         (bg (color-name-to-rgb (face-background 'default))))
     (when (and fg bg)
@@ -144,9 +144,9 @@ times the distance between C to bg."
                         bg)))))
 
 (defun dimmer-compute-rgb-in-HSL-space (c frac)
-  "Compute \"dimming\" by linear interpolation between color C
-and the default face's background with FRAC controlling the
-interpolation.
+  "Compute \"dimming\" by linear interpolation in HSL space.
+Blends the color C and the default face's background with FRAC
+controlling the interpolation.
 
 When FRAC is 0.0, the result is equal to C.
 When FRAC is 1.0, the result is equal to the background.
@@ -158,8 +158,7 @@ between C and the background.
 Mathematically: the resulting color C' sits on the line segment
 connecting the color C and the background (of the `default`
 face), such that the Euclidian distance between C and C' is FRAC
-times the distance between C to bg. We perform this transformation
-in HSL space."
+times the distance between C and bg."
   (let ((fg (color-name-to-rgb c))
         (bg (color-name-to-rgb (face-background 'default))))
     (when (and fg bg)
@@ -171,9 +170,9 @@ in HSL space."
                                (apply 'color-rgb-to-hsl bg)))))))
 
 (defun dimmer-compute-rgb-in-LAB-space (c frac)
-  "Compute \"dimming\" by linear interpolation between color C
-and the default face's background with FRAC controlling the
-interpolation.
+  "Compute \"dimming\" by linear interpolation in CIELAB space.
+Blends the color C and the default face's background with FRAC
+controlling the interpolation.
 
 When FRAC is 0.0, the result is equal to C.
 When FRAC is 1.0, the result is equal to the background.
@@ -185,10 +184,10 @@ between C and the background.
 Mathematically: the resulting color C' sits on the line segment
 connecting the color C and the background (of the `default`
 face), such that the Euclidian distance between C and C' is FRAC
-times the distance between C to bg. We perform this
-transformation in the CIELAB 1976 color space. When we convert
-back to RGB the channels are simply clamped if they fall outside
-the normal 0.0-1.0 range."
+times the distance between C and bg. We perform this
+transformation in the CIELAB 1976 color space. In practice this
+can lead to colors outside the range 0-255, so when we convert
+back to RGB the channel values are clamped."
   (let ((fg (color-name-to-rgb c))
         (bg (color-name-to-rgb (face-background 'default))))
     (when (and fg bg)
