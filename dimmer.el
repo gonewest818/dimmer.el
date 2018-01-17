@@ -113,23 +113,12 @@
 (defconst dimmer-debug-messages nil
   "Enable debugging output to *Messages* buffer.")
 
-(defun dimmer-invert-p ()
-  "Determine if the dimmed faces should be brighter instead of darker.
-The decision is based by comparing the max RGB value of the
-background and foreground of the default face.  If the background
-color is brighter then we return t, else nil."
-  (let ((fg (color-name-to-rgb (face-foreground 'default)))
-        (bg (color-name-to-rgb (face-background 'default))))
-    (if (and fg bg)
-        (> (apply 'max bg) (apply 'max fg))
-      (error "Cannot determine rgb values for face 'default"))))
-
 (defun dimmer-lerp (v0 v1 frac)
   "Compute linear interpolation (\"lerp\") of V0 and V1 with FRAC."
   (+ (* v0 (- 1.0 frac))
      (* v1 frac)))
 
-(defun dimmer-compute-rgb (c frac invert)
+(defun dimmer-compute-rgb-in-RGB-space (c frac)
   "Compute \"dimming\" by linear interpolation between color C
 and the default face's background with FRAC controlling the
 interpolation.
@@ -154,7 +143,7 @@ times the distance between C to bg."
                         fg
                         bg)))))
 
-(defun dimmer-compute-rgb-in-HSL-space (c frac invert)
+(defun dimmer-compute-rgb-in-HSL-space (c frac)
   "Compute \"dimming\" by linear interpolation between color C
 and the default face's background with FRAC controlling the
 interpolation.
@@ -181,7 +170,7 @@ in HSL space."
                                (apply 'color-rgb-to-hsl fg)
                                (apply 'color-rgb-to-hsl bg)))))))
 
-(defun dimmer-compute-rgb-in-LAB-space (c frac invert)
+(defun dimmer-compute-rgb-in-LAB-space (c frac)
   "Compute \"dimming\" by linear interpolation between color C
 and the default face's background with FRAC controlling the
 interpolation.
@@ -208,28 +197,28 @@ in the CIELAB 1976 color space."
                                (apply 'color-srgb-to-lab fg)
                                (apply 'color-srgb-to-lab bg)))))))
 
-(defun dimmer-face-color (f frac invert)
+(defalias 'dimmer-compute-rgb 'dimmer-compute-rgb-in-LAB-space)
+
+(defun dimmer-face-color (f frac)
   "Compute a dimmed version of the foreground color of face F.
 FRAC is the amount of dimming where 0.0 is no change and 1.0 is
-maximum change.  When INVERT is not nil, invert the scaling
-for dark-on-light themes."
+maximum change."
   (let ((fg (face-foreground f)))
     (when (and fg (color-defined-p fg))
-      (let ((key (format "%s-%f-%S" fg frac invert)))
+      (let ((key (format "%s-%f" fg frac)))
         (or (gethash key dimmer-dimmed-faces)
-            (let ((rgb (dimmer-compute-rgb fg frac invert)))
+            (let ((rgb (dimmer-compute-rgb fg frac)))
               (when rgb
                 (puthash key rgb dimmer-dimmed-faces)
                 rgb)))))))
 
-(defun dimmer-dim-buffer (buf frac invert)
+(defun dimmer-dim-buffer (buf frac)
   "Dim all the faces defined in the buffer BUF.
-FRAC and INVERT controls the dimming as defined
-in ‘dimmer-face-color’."
+FRAC controls the dimming as defined in ‘dimmer-face-color’."
   (with-current-buffer buf
     (unless dimmer-buffer-face-remaps
       (dolist (f (face-list))
-        (let ((c (dimmer-face-color f frac invert)))
+        (let ((c (dimmer-face-color f frac)))
           (when c  ; e.g. "(when-let* ((c (...)))" in Emacs 26
             (setq dimmer-buffer-face-remaps
                   (cons (face-remap-add-relative f :foreground c)
@@ -263,13 +252,13 @@ in ‘dimmer-face-color’."
     (dolist (buf (dimmer-filtered-buffer-list))
       (if (eq buf selected)
           (dimmer-restore-buffer buf)
-        (dimmer-dim-buffer buf dimmer-fraction (dimmer-invert-p))))))
+        (dimmer-dim-buffer buf dimmer-fraction)))))
 
 (defun dimmer-dim-all ()
   "Dim all buffers."
   (dimmer--dbg "dimmer-dim-all")
   (mapc (lambda (buf)
-          (dimmer-dim-buffer buf dimmer-fraction (dimmer-invert-p)))
+          (dimmer-dim-buffer buf dimmer-fraction))
         (buffer-list)))
 
 (defun dimmer-restore-all ()
