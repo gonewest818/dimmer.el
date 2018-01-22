@@ -94,9 +94,33 @@
 
 (defcustom dimmer-exclusion-regexp nil
   "Regular expression describing buffer names that are never dimmed."
-  :type '(regexp)
+  :type '(choice (const nil) (regexp))
   :group 'dimmer)
 
+(defcustom dimmer-use-colorspace :cielab
+  "Colorspace in which dimming calculations are performed.
+Choices are :cielab (default), :hsl, or :rgb.
+
+CIELAB is the default, and in most cases should serve perfectly
+well.  As a colorspace it attempts to be uniform to the human
+eye, meaning the degree of dimming should be roughly the same for
+all your foreground colors.
+
+Bottom line: If CIELAB is working for you, then you don't need to
+experiment with the other choices.
+
+However, interpolating in CIELAB introduces one wrinkle, in that
+mathematically it's possible to generate a color that isn't
+representable on your RGB display (colors having one or more RGB
+channel values < 0.0 or > 1.0).  When dimmer finds an
+\"impossible\" RGB value like that it simply clamps that value to
+fit in the range 0.0 - 1.0.  Clamping like this can lead to some
+colors looking \"wrong\".  If you think the dimmed values look
+wrong, then try HSV or RGB instead."
+  :type '(radio (const :tag "Interpolate in CIELAB 1976" :cielab)
+                (const :tag "Interpolate in HSL" :hsl)
+                (const :tag "Interpolate in RGB" :rgb))
+  :group 'dimmer)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; implementation
@@ -118,64 +142,24 @@
   (+ (* v0 (- 1.0 frac))
      (* v1 frac)))
 
-(defun dimmer-compute-rgb-in-RGB-space (fg bg frac)
-  "Compute \"dimming\" by linear interpolation in RGB space.
-Blends the foreground FG and the background BG using FRAC to
-control the interpolation.
-
-When FRAC is 0.0, the result is equal to FG.
-When FRAC is 1.0, the result is equal to BG.
-
-Any other value for FRAC means the result's hue, saturation, and
-value will be adjusted linearly so that the color sits somewhere
-between FG and BG.
-
-Mathematically: the resulting color C sits on the line segment
-connecting the colors FG and BG such that the Euclidian distance
-between FG and C is FRAC times the distance between FG and BG."
+(defun dimmer-lerp-in-rgb (fg bg frac)
+  "Compute linear interpolation of FG and BG in RGB space.
+FRAC controls the interpolation."
   (apply 'color-rgb-to-hex
          (cl-mapcar (apply-partially 'dimmer-lerp frac) fg bg)))
 
-(defun dimmer-compute-rgb-in-HSL-space (fg bg frac)
-  "Compute \"dimming\" by linear interpolation in HSL space.
-Blends the foreground FG and the background BG using FRAC to
-control the interpolation.
-
-When FRAC is 0.0, the result is equal to FG.
-When FRAC is 1.0, the result is equal to BG.
-
-Any other value for FRAC means the result's hue, saturation, and
-value will be adjusted linearly so that the color sits somewhere
-between FG and BG.
-
-Mathematically: the resulting color C sits on the line segment
-connecting the colors FG and BG such that the Euclidian distance
-between FG and C is FRAC times the distance between FG and BG."
+(defun dimmer-lerp-in-hsl (fg bg frac)
+  "Compute linear interpolation of FG and BG in HSL space.
+FRAC controls the interpolation."
   (apply 'color-rgb-to-hex
          (apply 'color-hsl-to-rgb
                 (cl-mapcar (apply-partially 'dimmer-lerp frac)
                            (apply 'color-rgb-to-hsl fg)
                            (apply 'color-rgb-to-hsl bg)))))
 
-(defun dimmer-compute-rgb-in-LAB-space (fg bg frac)
-  "Compute \"dimming\" by linear interpolation in CIELAB space.
-Blends the foreground FG and the background BG using FRAC to
-control the interpolation.
-
-When FRAC is 0.0, the result is equal to FG.
-When FRAC is 1.0, the result is equal to BG.
-
-Any other value for FRAC means the result's hue, saturation, and
-value will be adjusted linearly so that the color sits somewhere
-between FG and BG.
-
-Mathematically: the resulting color C sits on the line segment
-connecting the colors FG and BG such that the Euclidian distance
-between FG and C is FRAC times the distance between FG and BG. We
-perform this transformation in the CIELAB 1976 color space. In
-practice, operations in CIELAB space can lead to colors outside
-the range 0-255; therefore we must clamp the channel values as we
-convert back to RGB."
+(defun dimmer-lerp-in-cielab (fg bg frac)
+  "Compute linear interpolation of FG and BG in CIELAB space.
+FRAC controls the interpolation."
   (apply 'color-rgb-to-hex
          (mapcar 'color-clamp
                  (apply 'color-lab-to-srgb
@@ -183,7 +167,24 @@ convert back to RGB."
                                    (apply 'color-srgb-to-lab fg)
                                    (apply 'color-srgb-to-lab bg))))))
 
-(defalias 'dimmer-compute-rgb 'dimmer-compute-rgb-in-LAB-space)
+(defun dimmer-compute-rgb (fg bg frac colorspace)
+  "Compute a \"dimmed\" color via linear interpolation.
+
+Blends the foreground FG and the background BG using FRAC to
+control the interpolation. When FRAC is 0.0, the result is equal
+to FG.  When FRAC is 1.0, the result is equal to BG.
+
+Any other value for FRAC means the result's hue, saturation, and
+value will be adjusted linearly so that the color sits somewhere
+between FG and BG.
+
+The interpolation is performed in a COLORSPACE which is specified
+with a symbol, :rgb, :hsv, or :cielab."
+  (pcase colorspace
+    (:rgb    (dimmer-lerp-in-rgb fg bg frac))
+    (:hsv    (dimmer-lerp-in-hsl fg bg frac))
+    (:cielab (dimmer-lerp-in-cielab fg bg frac))
+    (_       (dimmer-lerp-in-cielab fg bg frac))))
 
 (defun dimmer-face-color (f frac)
   "Compute a dimmed version of the foreground color of face F.
@@ -193,11 +194,12 @@ maximum change."
         (bg (face-background 'default)))
     (when (and fg (color-defined-p fg)
                bg (color-defined-p bg))
-      (let ((key (format "%s-%s-%f" fg bg frac)))
+      (let ((key (format "%s-%s-%f-%s" fg bg frac dimmer-use-colorspace)))
         (or (gethash key dimmer-dimmed-faces)
             (let ((rgb (dimmer-compute-rgb (color-name-to-rgb fg)
                                            (color-name-to-rgb bg)
-                                           frac)))
+                                           frac
+                                           dimmer-use-colorspace)))
               (when rgb
                 (puthash key rgb dimmer-dimmed-faces)
                 rgb)))))))
