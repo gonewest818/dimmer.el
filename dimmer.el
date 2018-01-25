@@ -13,51 +13,45 @@
 ;; 
 ;;; Commentary:
 ;; 
-;; This module provides a subtle visual indication which window is
-;; currently active by dimming the faces on the others.  It does this
-;; nondestructively, and computes the dimmed faces dynamically such
-;; that your overall color scheme is shown in a muted form without
-;; requiring you to define the "dim" versions of every face.
-;; 
-;; The *percentage* of dimming is user configurable.
-;; 
-;; The *direction* of dimming is computed on the fly.  For instance,
-;; if you have a dark theme then the dimmed face is darker, and if you
-;; have a light theme the dimmed face is lighter.
-;; 
-;; Caveats:
-;; 
-;; This module makes use of the `face-remap-*` APIs in Emacs and these
-;; APIs work on buffers rather than windows.  This means anytime you
-;; have multiple windows displaying the same buffer they will dim or
-;; undim together.  In my configuration I combine this package with
-;; `global-hl-line-mode` so that it's also clear which window is
-;; active.
-;; 
-;; Users of light themes may need to increase `dimmer-fraction` in
-;; order to see the effect.
-;; 
+;; This module provides a minor mode that indicates which buffer is
+;; currently active by dimming the faces in the other buffers.  It
+;; does this nondestructively, and computes the dimmed faces
+;; dynamically such that your overall color scheme is shown in a muted
+;; form without requiring you to define what is a "dim" version of
+;; every face.
+;;
+;; The `default` background color is the target for all dimming
+;; calculations.  If your default background is "white" then faces
+;; will be made brighter when "dimmed".  If your default background is
+;; a dark blue, then faces will be shifted "darker" and "more blue"
+;; when buffers are dimmed.
+;;
 ;; Usage:
-;; 
+;;
 ;;      (require 'dimmer) ; unless installed as a package
 ;;      (dimmer-mode)
-;; 
+;;
 ;; Customization:
-;; 
-;; `dimmer-fraction` controls the degree to which unselected buffers
-;; are dimmed.  Range is 0.0 - 1.0, and default is 0.20.  Increase
-;; value if you like the other buffers to be more dim.
-;; 
-;; Use `dimmer-exclusion-regexp` to describe patterns for buffer names
-;; that should never be dimmed, for example, you could match buffers
-;; created by helm.
+;;
+;; `dimmer-fraction` controls the degree to which buffers are dimmed.
+;; Range is 0.0 - 1.0, and default is 0.20.  Increase value if you
+;; like the other buffers to be more dim.
+;;
+;; `dimmer-exclusion-regexp` can be used to specify buffers that
+;; should never be dimmed.  If the buffer name matches this regexp
+;; then `dimmer.el` will not dim that buffer.
+;;
+;; `dimmer-use-colorspace` allows you to specify what color space the
+;; dimming calculation is performed in.  In the majority of cases you
+;; won't need to touch this setting.  See the docstring below for more
+;; information.
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
-;; This program is free software: you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 3 of the License, or (at
-;; your option) any later version.
+;; This program is free software: you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
 ;; 
 ;; This program is distributed in the hope that it will be useful, but
 ;; WITHOUT ANY WARRANTY; without even the implied warranty of
