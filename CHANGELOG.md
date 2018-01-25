@@ -8,6 +8,10 @@ refer to the issue number that was resolved.
 
 ## Snapshot (on melpa.org)
 
+(Currently in sync with 0.3.0)
+
+## 0.3.0 (stable.melpa.org)
+
 - Features
   - Improved dimming calculation:
     - "dimming" now mixes the foreground color with the default
@@ -19,7 +23,7 @@ refer to the issue number that was resolved.
       certain colors "pop" more than others.
     - Colorspace is user-configurable with via `dimmer-use-colorspace`.
 
-## 0.2.2 (stable.melpa.org)
+## 0.2.2
 
 - Features
   - Dim buffers when switching between Emacs frames.
