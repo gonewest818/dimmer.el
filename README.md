@@ -5,6 +5,7 @@ Visually highlight the selected buffer.
 [![MELPA Stable](https://stable.melpa.org/packages/dimmer-badge.svg)](https://stable.melpa.org/#/dimmer)
 [![MELPA](https://melpa.org/packages/dimmer-badge.svg)](https://melpa.org/#/dimmer)
 [![Build Status](https://travis-ci.org/gonewest818/dimmer.el.svg?branch=master)](https://travis-ci.org/gonewest818/dimmer.el)
+[![CircleCI](https://circleci.com/gh/gonewest818/dimmer.el.svg?style=svg)](https://circleci.com/gh/gonewest818/dimmer.el)
 
 ## Description
 
