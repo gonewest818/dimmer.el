@@ -1,13 +1,23 @@
-CASK = cask
+export EMACS ?= emacs
+export BATCH = --batch -q -l .emacs/init.el
 
-.PHONY: version bytecomp checkdoc
+ELS = $(wildcard *.el)
+OBJECTS = $(ELS:.el=.elc)
 
-version:
-	$(CASK) emacs --version
+.PHONY: version lint clean cleanelpa
 
-ci-bytecomp: version
-	$(CASK) emacs -Q --batch -l test/ci-bytecomp.el
+.elpa:
+	$(EMACS) $(BATCH)
+	touch .elpa
 
-ci-checkdoc: version
-	$(CASK) emacs -Q --batch --eval '(checkdoc-file "dimmer.el")' 2>&1 \
-		 | grep -E "dimmer.el:[0-9]+" && exit 1 || exit 0
+version: .elpa
+	$(EMACS) $(BATCH) --version
+
+lint: .elpa
+	$(EMACS) $(BATCH) -f elisp-lint-files-batch $(ELS)
+
+clean:
+	rm -f $(OBJECTS)
+
+cleanelpa: clean
+	rm -rf .emacs/elpa .emacs/quelpa .emacs/.emacs-custom.el .elpa

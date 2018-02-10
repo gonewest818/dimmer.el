@@ -20,19 +20,17 @@ cache:
 
 env:
   global:
-    - PATH=$HOME/local/bin:$HOME/local/evm/bin:$HOME/local/cask/bin:$PATH
+    - PATH=$HOME/local/bin:$HOME/local/evm/bin:$PATH
   matrix:
-    - EMACS_BINARY=emacs-25.3-travis TEST=ci-checkdoc
-    - EMACS_BINARY=emacs-25.3-travis TEST=ci-bytecomp
-    - EMACS_BINARY=emacs-26-pretest-travis TEST=ci-bytecomp
-    - EMACS_BINARY=emacs-git-snapshot-travis TEST=ci-bytecomp
+    - EMACS_BINARY=emacs-25.3-travis TEST="version lint"
+    - EMACS_BINARY=emacs-26-pretest-travis TEST="version lint"
+    - EMACS_BINARY=emacs-git-snapshot-travis TEST="version lint"
 
 before_script:
   - sh travis-ci/install-gnutls.sh
   - gnutls-cli -v
   - sh travis-ci/install-evm.sh
   - evm install $EMACS_BINARY --use --skip
-  - sh travis-ci/install-cask.sh
 
 script:
   - make $TEST
