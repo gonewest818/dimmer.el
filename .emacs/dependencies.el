@@ -1,8 +1,8 @@
 ;;; dependencies.el - project specific package dependencies
 
-(use-package elisp-lint
-  :quelpa (elisp-lint :fetcher github
-                      :repo "gonewest818/elisp-lint"
-                      :branch "modernization"))
+(use-package lintel
+  :quelpa (lintel :fetcher github
+                  :repo "gonewest818/lintel"
+                  :branch "master"))
 
 ;;; dependencies.el ends here
