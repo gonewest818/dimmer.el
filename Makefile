@@ -14,7 +14,7 @@ version: .elpa
 	$(EMACS) $(BATCH) --version
 
 lint: .elpa
-	$(EMACS) $(BATCH) -f lintel-files-batch $(ELS)
+	$(EMACS) $(BATCH) -f elisp-lint-files-batch $(ELS)
 
 clean:
 	rm -f $(OBJECTS)
