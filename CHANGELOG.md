@@ -10,8 +10,8 @@ refer to the issue number that was resolved.
 
 - Dev and CI environment updates
   - Replace Cask with custom .emacs/init.el
-  - Adopt `elisp-lint` package//
-  - Migrate package development to CircleCI
+  - Adopt `elisp-lint` package as an additional code quality test
+  - Migrate tests to CircleCI and drop Travis CI [#11]
   - Make `.dir-locals.el` settings apply to `emacs-lisp-mode` only [#13]
 
 
