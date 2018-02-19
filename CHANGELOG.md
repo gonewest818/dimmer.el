@@ -8,7 +8,12 @@ refer to the issue number that was resolved.
 
 ## Snapshot (on melpa.org)
 
-(Currently in sync with 0.3.0)
+- Dev and CI environment updates
+  - Replace Cask with custom .emacs/init.el
+  - Adopt `elisp-lint` package//
+  - Migrate package development to CircleCI
+  - Make `.dir-locals.el` settings apply to `emacs-lisp-mode` only [#13]
+
 
 ## 0.3.0 (stable.melpa.org)
 
