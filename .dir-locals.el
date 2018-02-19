@@ -1,2 +1,2 @@
-((nil . ((indent-tabs-mode . nil)
-         (fill-column . 80))))
+((emacs-lisp-mode . ((indent-tabs-mode . nil)
+                     (fill-column . 80))))
