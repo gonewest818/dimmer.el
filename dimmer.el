@@ -274,7 +274,12 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
   "Process all buffers if window configuration has changed."
   (dimmer--dbg "dimmer-config-change-hook")
   (unless (bound-and-true-p dimmer-timer)
-    (setq dimmer-timer (run-at-time nil nil #'dimmer-process-all))))
+    (setq dimmer-timer (run-at-time nil nil #'dimmer-process-all))
+    ;; Queue up a sanity-check in case something forces a window change on us
+    ;; This is useful mainly trying to keep up with other asychronous processes
+    ;; - like those used in magit, for example, which often call `select-window'
+    ;; sometime after changing the window configuration.
+    (run-at-time 0.2 nil #'dimmer-command-hook)))
 
 ;;;###autoload
 (define-minor-mode dimmer-mode
@@ -294,7 +299,8 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
     (remove-hook 'focus-out-hook 'dimmer-dim-all)
     (remove-hook 'post-command-hook 'dimmer-command-hook)
     (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
-    (run-at-time nil nil #'dimmer-restore-all)))
+    (dimmer-restore-all)
+    (run-at-time 0.2 nil #'dimmer-restore-all)))
 
 ;;;###autoload
 (define-obsolete-function-alias 'dimmer-activate 'dimmer-mode)
