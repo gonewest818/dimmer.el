@@ -82,9 +82,18 @@
   :type '(float)
   :group 'dimmer)
 
-(defcustom dimmer-exclusion-regexp nil
-  "Regular expression describing buffer names that are never dimmed."
-  :type '(choice (const nil) (regexp))
+(defcustom dimmer-exclusion-regexp-list nil
+  "List of regular expressions describing buffer names that are never dimmed."
+  :type '(repeat (choice regexp))
+  :group 'dimmer)
+
+(defcustom dimmer-exclusion-predicates nil
+  "List of functions which prevent dimmer from altering dimmed buffer set.
+
+Functions in this list are called in turn with no arguments. If any function
+returns a non-nil value, no buffers will be added to or removed from the set of
+dimmed buffers."
+  :type '(repeat (choice function))
   :group 'dimmer)
 
 (defcustom dimmer-use-colorspace :cielab
@@ -219,8 +228,8 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
      (lambda (win)
        (let* ((buf (window-buffer win))
               (name (buffer-name buf)))
-         (unless (and dimmer-exclusion-regexp
-                      (string-match-p dimmer-exclusion-regexp name))
+         (unless (cl-some (lambda (rxp) (string-match-p rxp name))
+                          dimmer-exclusion-regexp-list)
            (push buf buffers))))
      nil
      t)
@@ -228,12 +237,15 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
 
 (defun dimmer-process-all ()
   "Process all buffers and dim or un-dim each."
-  (let ((selected (current-buffer)))
+  (let ((selected (current-buffer))
+        (ignore (cl-some (lambda (f) (and (fboundp f) (funcall f)))
+                         dimmer-exclusion-predicates)))
     (setq dimmer-last-buffer selected)
-    (dolist (buf (dimmer-filtered-buffer-list))
-      (if (eq buf selected)
-          (dimmer-restore-buffer buf)
-        (dimmer-dim-buffer buf dimmer-fraction)))))
+    (unless ignore
+      (dolist (buf (dimmer-filtered-buffer-list))
+        (if (eq buf selected)
+            (dimmer-restore-buffer buf)
+          (dimmer-dim-buffer buf dimmer-fraction))))))
 
 (defun dimmer-dim-all ()
   "Dim all buffers."
