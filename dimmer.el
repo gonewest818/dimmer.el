@@ -238,7 +238,8 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
 (defun dimmer-process-all ()
   "Process all buffers and dim or un-dim each."
   (let ((selected (current-buffer))
-        (ignore (cl-some #'funcall dimmer-exclusion-predicates)))
+        (ignore (cl-some (lambda (f) (and (fboundp f) (funcall f)))
+                         dimmer-exclusion-predicates)))
     (setq dimmer-last-buffer selected)
     (unless ignore
       (dolist (buf (dimmer-filtered-buffer-list))
