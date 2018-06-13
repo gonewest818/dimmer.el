@@ -123,6 +123,9 @@ wrong, then try HSV or RGB instead."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; implementation
+(defvar dimmer-timer nil
+  "Stores asynchronous timer used in calling `dimmer-process-all'.")
+
 (defvar dimmer-last-buffer nil
   "Identity of the last buffer to be made current.")
 
@@ -244,7 +247,10 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
       (dolist (buf (dimmer-filtered-buffer-list))
         (if (eq buf selected)
             (dimmer-restore-buffer buf)
-          (dimmer-dim-buffer buf dimmer-fraction))))))
+          (dimmer-dim-buffer buf dimmer-fraction)))))
+  (when (bound-and-true-p dimmer-timer)
+    (cancel-timer dimmer-timer))
+  (setq dimmer-timer nil))
 
 (defun dimmer-dim-all ()
   "Dim all buffers."
@@ -260,13 +266,15 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
 (defun dimmer-command-hook ()
   "Process all buffers if current buffer has changed."
   (dimmer--dbg "dimmer-command-hook")
-  (unless (eq (window-buffer) dimmer-last-buffer)
-    (dimmer-process-all)))
+  (unless (or (eq (window-buffer) dimmer-last-buffer)
+              (bound-and-true-p dimmer-timer))
+    (setq dimmer-timer (run-at-time nil nil #'dimmer-process-all))))
 
 (defun dimmer-config-change-hook ()
   "Process all buffers if window configuration has changed."
   (dimmer--dbg "dimmer-config-change-hook")
-  (dimmer-process-all))
+  (unless (bound-and-true-p dimmer-timer)
+    (setq dimmer-timer (run-at-time nil nil #'dimmer-process-all))))
 
 ;;;###autoload
 (define-minor-mode dimmer-mode
@@ -280,12 +288,13 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
         (add-hook 'focus-in-hook 'dimmer-config-change-hook)
         (add-hook 'focus-out-hook 'dimmer-dim-all)
         (add-hook 'post-command-hook 'dimmer-command-hook)
-        (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
+        (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
+        (dimmer-process-all))
     (remove-hook 'focus-in-hook 'dimmer-config-change-hook)
     (remove-hook 'focus-out-hook 'dimmer-dim-all)
     (remove-hook 'post-command-hook 'dimmer-command-hook)
     (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
-    (dimmer-restore-all)))
+    (run-at-time nil nil #'dimmer-restore-all)))
 
 ;;;###autoload
 (define-obsolete-function-alias 'dimmer-activate 'dimmer-mode)
