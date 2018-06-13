@@ -123,18 +123,17 @@ wrong, then try HSV or RGB instead."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; implementation
+(defvar dimmer-last-buffer nil
+  "Identity of the last buffer to be made current.")
+
+(defvar dimmer-debug-messages nil
+  "Enable debugging output to *Messages* buffer.")
 
 (defvar-local dimmer-buffer-face-remaps nil
   "Per-buffer face remappings needed for later clean up.")
 
 (defconst dimmer-dimmed-faces (make-hash-table :test 'equal)
   "Cache of face names with their computed dimmed values.")
-
-(defconst dimmer-last-buffer nil
-  "Identity of the last buffer to be made current.")
-
-(defconst dimmer-debug-messages nil
-  "Enable debugging output to *Messages* buffer.")
 
 (defun dimmer-lerp (frac v0 v1)
   "Use FRAC to compute a linear interpolation of V0 and V1."
