@@ -266,8 +266,6 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
   :require 'dimmer
   (if dimmer-mode
       (progn
-        (add-hook 'focus-in-hook 'dimmer-config-change-hook)
-        (add-hook 'focus-out-hook 'dimmer-dim-all)
         (add-hook 'post-command-hook 'dimmer-command-hook)
         (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
     (remove-hook 'focus-in-hook 'dimmer-config-change-hook)
