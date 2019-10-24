@@ -82,9 +82,18 @@
   :type '(float)
   :group 'dimmer)
 
-(defcustom dimmer-exclusion-regexp nil
-  "Regular expression describing buffer names that are never dimmed."
-  :type '(choice (const nil) (regexp))
+(defcustom dimmer-exclusion-regexp-list nil
+  "List of regular expressions describing buffer names that are never dimmed."
+  :type '(repeat (choice regexp))
+  :group 'dimmer)
+
+(defcustom dimmer-exclusion-predicates nil
+  "List of functions which prevent dimmer from altering dimmed buffer set.
+
+Functions in this list are called in turn with no arguments. If any function
+returns a non-nil value, no buffers will be added to or removed from the set of
+dimmed buffers."
+  :type '(repeat (choice function))
   :group 'dimmer)
 
 (defcustom dimmer-use-colorspace :cielab
@@ -114,18 +123,20 @@ wrong, then try HSV or RGB instead."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; implementation
+(defvar dimmer-timer nil
+  "Stores asynchronous timer used in calling `dimmer-process-all'.")
+
+(defvar dimmer-last-buffer nil
+  "Identity of the last buffer to be made current.")
+
+(defvar dimmer-debug-messages nil
+  "Enable debugging output to *Messages* buffer.")
 
 (defvar-local dimmer-buffer-face-remaps nil
   "Per-buffer face remappings needed for later clean up.")
 
 (defconst dimmer-dimmed-faces (make-hash-table :test 'equal)
   "Cache of face names with their computed dimmed values.")
-
-(defconst dimmer-last-buffer nil
-  "Identity of the last buffer to be made current.")
-
-(defconst dimmer-debug-messages nil
-  "Enable debugging output to *Messages* buffer.")
 
 (defun dimmer-lerp (frac v0 v1)
   "Use FRAC to compute a linear interpolation of V0 and V1."
@@ -219,8 +230,8 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
      (lambda (win)
        (let* ((buf (window-buffer win))
               (name (buffer-name buf)))
-         (unless (and dimmer-exclusion-regexp
-                      (string-match-p dimmer-exclusion-regexp name))
+         (unless (cl-some (lambda (rxp) (string-match-p rxp name))
+                          dimmer-exclusion-regexp-list)
            (push buf buffers))))
      nil
      t)
@@ -228,12 +239,18 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
 
 (defun dimmer-process-all ()
   "Process all buffers and dim or un-dim each."
-  (let ((selected (current-buffer)))
+  (let ((selected (current-buffer))
+        (ignore (cl-some (lambda (f) (and (fboundp f) (funcall f)))
+                         dimmer-exclusion-predicates)))
     (setq dimmer-last-buffer selected)
-    (dolist (buf (dimmer-filtered-buffer-list))
-      (if (eq buf selected)
-          (dimmer-restore-buffer buf)
-        (dimmer-dim-buffer buf dimmer-fraction)))))
+    (unless ignore
+      (dolist (buf (dimmer-filtered-buffer-list))
+        (if (eq buf selected)
+            (dimmer-restore-buffer buf)
+          (dimmer-dim-buffer buf dimmer-fraction)))))
+  (when (bound-and-true-p dimmer-timer)
+    (cancel-timer dimmer-timer))
+  (setq dimmer-timer nil))
 
 (defun dimmer-dim-all ()
   "Dim all buffers."
@@ -249,13 +266,20 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
 (defun dimmer-command-hook ()
   "Process all buffers if current buffer has changed."
   (dimmer--dbg "dimmer-command-hook")
-  (unless (eq (window-buffer) dimmer-last-buffer)
-    (dimmer-process-all)))
+  (unless (or (eq (window-buffer) dimmer-last-buffer)
+              (bound-and-true-p dimmer-timer))
+    (setq dimmer-timer (run-at-time nil nil #'dimmer-process-all))))
 
 (defun dimmer-config-change-hook ()
   "Process all buffers if window configuration has changed."
   (dimmer--dbg "dimmer-config-change-hook")
-  (dimmer-process-all))
+  (unless (bound-and-true-p dimmer-timer)
+    (setq dimmer-timer (run-at-time nil nil #'dimmer-process-all))
+    ;; Queue up a sanity-check in case something forces a window change on us
+    ;; This is useful mainly trying to keep up with other asychronous processes
+    ;; - like those used in magit, for example, which often call `select-window'
+    ;; sometime after changing the window configuration.
+    (run-at-time 0.2 nil #'dimmer-command-hook)))
 
 ;;;###autoload
 (define-minor-mode dimmer-mode
@@ -269,12 +293,14 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
         (add-hook 'focus-in-hook 'dimmer-config-change-hook)
         (add-hook 'focus-out-hook 'dimmer-dim-all)
         (add-hook 'post-command-hook 'dimmer-command-hook)
-        (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
+        (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
+        (dimmer-process-all))
     (remove-hook 'focus-in-hook 'dimmer-config-change-hook)
     (remove-hook 'focus-out-hook 'dimmer-dim-all)
     (remove-hook 'post-command-hook 'dimmer-command-hook)
     (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
-    (dimmer-restore-all)))
+    (dimmer-restore-all)
+    (run-at-time 0.2 nil #'dimmer-restore-all)))
 
 ;;;###autoload
 (define-obsolete-function-alias 'dimmer-activate 'dimmer-mode)
