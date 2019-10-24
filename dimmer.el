@@ -76,11 +76,11 @@
   :group 'convenience
   :link '(url-link :tag "GitHub" "https://github.com/gonewest818/dimmer.el"))
 
+(define-obsolete-variable-alias 'dimmer-percent 'dimmer-fraction)
 (defcustom dimmer-fraction 0.20
   "Control the degree to which buffers are dimmed (0.0 - 1.0)."
   :type '(float)
   :group 'dimmer)
-(define-obsolete-variable-alias 'dimmer-percent 'dimmer-fraction)
 
 (defcustom dimmer-exclusion-regexp nil
   "Regular expression describing buffer names that are never dimmed."
