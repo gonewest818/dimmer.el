@@ -32,12 +32,20 @@ are dimmed.
 ## Customization
 
 `dimmer-fraction` controls the degree to which buffers are dimmed.
-Range is 0.0 - 1.0, and default is 0.20.  Increase value if you like
-the other buffers to be more dim.
+Range is 0.0 - 1.0, and default is 0.20.  Increase value if you
+like the other buffers to be more dim.
 
-`dimmer-exclusion-regexp` can be used to specify buffers that should
-never be dimmed. If the buffer name matches this regexp then
-`dimmer.el` will not dim that buffer.
+`dimmer-exclusion-regexp-list` can be used to specify buffers that
+should never be dimmed.  If the buffer name matches any regexp in
+this list then `dimmer.el` will not dim that buffer. Note, this
+variable replaces `dimmer-exclusion-regexp` which is obsolete
+starting with release 0.4.0 of this package.
+
+`dimmer-exclusion-predicates` can be used to prevent dimmer from
+altering the dimmed buffer list.  This can be used to detect cases
+where a package pops up a buffer temporarily, and we don't want
+the dimming to change.  If any function in this list returns a
+non-nil value, no buffers will be changed.
 
 `dimmer-use-colorspace` allows you to specify what color space the
 dimming calculation is performed in. In the majority of cases you
@@ -77,7 +85,7 @@ customization screens for more background on this issue.
 
 ## License
 
-Copyright (C) 2017-2018 Neil Okamoto
+Copyright (C) 2017-2019 Neil Okamoto
 
 Distributed under the GNU General Public License, Version 3
 

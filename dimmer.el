@@ -1,10 +1,10 @@
 ;;; dimmer.el --- visually highlight the selected buffer
 
-;; Copyright (C) 2017-2018 Neil Okamoto
+;; Copyright (C) 2017-2019 Neil Okamoto
 
 ;; Filename: dimmer.el
 ;; Author: Neil Okamoto
-;; Version: 0.3.1-SNAPSHOT
+;; Version: 0.4.0-SNAPSHOT
 ;; Package-Requires: ((emacs "25"))
 ;; URL: https://github.com/gonewest818/dimmer.el
 ;; Keywords: faces, editing
@@ -50,9 +50,15 @@
 ;; Range is 0.0 - 1.0, and default is 0.20.  Increase value if you
 ;; like the other buffers to be more dim.
 ;;
-;; `dimmer-exclusion-regexp` can be used to specify buffers that
-;; should never be dimmed.  If the buffer name matches this regexp
-;; then `dimmer.el` will not dim that buffer.
+;; `dimmer-exclusion-regexp-list` can be used to specify buffers that
+;; should never be dimmed.  If the buffer name matches any regexp in
+;; this list then `dimmer.el` will not dim that buffer.
+;;
+;; `dimmer-exclusion-predicates` can be used to prevent dimmer from
+;; altering the dimmed buffer list.  This can be used to detect cases
+;; where a package pops up a buffer temporarily, and we don't want
+;; the dimming to change.  If any function in this list returns a
+;; non-nil value, no buffers will be changed.
 ;;
 ;; `dimmer-use-colorspace` allows you to specify what color space the
 ;; dimming calculation is performed in.  In the majority of cases you
@@ -82,6 +88,13 @@
   :type '(float)
   :group 'dimmer)
 
+(make-obsolete-variable
+ 'dimmer-exclusion-regexp
+ "`dimmer-exclusion-regexp` is obsolete and has no effect in this session.
+The variable has been superceded by `dimmer-exclusion-regexp-list`.
+See documentation for details."
+ "v0.4.0-SNAPSHOT")
+
 (defcustom dimmer-exclusion-regexp-list nil
   "List of regular expressions describing buffer names that are never dimmed."
   :type '(repeat (choice regexp))
@@ -90,9 +103,9 @@
 (defcustom dimmer-exclusion-predicates nil
   "List of functions which prevent dimmer from altering dimmed buffer set.
 
-Functions in this list are called in turn with no arguments. If any function
-returns a non-nil value, no buffers will be added to or removed from the set of
-dimmed buffers."
+Functions in this list are called in turn with no arguments.  If any function
+returns a non-nil value, no buffers will be added to or removed from the set
+of dimmed buffers."
   :type '(repeat (choice function))
   :group 'dimmer)
 
