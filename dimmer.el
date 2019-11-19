@@ -54,11 +54,11 @@
 ;; should never be dimmed.  If the buffer name matches any regexp in
 ;; this list then `dimmer.el` will not dim that buffer.
 ;;
-;; `dimmer-exclusion-predicates` can be used to prevent dimmer from
+;; `dimmer-prevent-dimming-predicates` can be used to prevent dimmer from
 ;; altering the dimmed buffer list.  This can be used to detect cases
-;; where a package pops up a buffer temporarily, and we don't want
-;; the dimming to change.  If any function in this list returns a
-;; non-nil value, no buffers will be changed.
+;; where a package pops up a window temporarily, and we don't want the
+;; dimming to change.  If any function in this list returns a non-nil
+;; value, dimming state will not be changed.
 ;;
 ;; `dimmer-use-colorspace` allows you to specify what color space the
 ;; dimming calculation is performed in.  In the majority of cases you
@@ -100,7 +100,9 @@ See documentation for details."
   :type '(repeat (choice regexp))
   :group 'dimmer)
 
-(defcustom dimmer-exclusion-predicates nil
+(define-obsolete-variable-alias
+  'dimmer-exclusion-predicates 'dimmer-prevent-dimming-predicates)
+(defcustom dimmer-prevent-dimming-predicates nil
   "List of functions which prevent dimmer from altering dimmed buffer set.
 
 Functions in this list are called in turn with no arguments.  If any function
@@ -251,7 +253,7 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
   "Process all buffers and dim or un-dim each."
   (let ((selected (current-buffer))
         (ignore (cl-some (lambda (f) (and (fboundp f) (funcall f)))
-                         dimmer-exclusion-predicates)))
+                         dimmer-prevent-dimming-predicates)))
     (setq dimmer-last-buffer selected)
     (unless ignore
       (dolist (buf (dimmer-filtered-buffer-list))
