@@ -42,7 +42,23 @@
 ;; Usage:
 ;;
 ;;      (require 'dimmer) ; unless installed as a package
-;;      (dimmer-mode)
+;;      (dimmer-configure-which-key)
+;;      (dimmer-configure-helm)
+;;      (dimmer-mode t)
+;;
+;; Configuration:
+;;
+;; By default dimmer excludes the minibuffer and echo areas from
+;; consideration, so that most packages that use the minibuffer for
+;; interaction will behave as users expect.
+;;
+;; `dimmer-configure-helm` is a convenience function for helm users that
+;; further modifies the customizations so helm buffers are not dimmed.
+;;
+;; `dimmer-configure-which-key` is a convenience function for which-key
+;; users that modifies the customizations so which-key popups are not dimmed.
+;;
+;; Please submit pull requests with configurations for other packages!
 ;;
 ;; Customization:
 ;;
@@ -60,6 +76,12 @@
 ;; dimming to change.  If any function in this list returns a non-nil
 ;; value, dimming state will not be changed.
 ;;
+;; `dimmer-watch-frame-focus-events` controls whether dimmer will dim all
+;; buffers when Emacs no longer has focus in the windowing system.  This
+;; is enabled by default.  Some users may prefer to set this to nil, and
+;; have the dimmed / not dimmed buffers stay as-is even when Emacs
+;; doesn't have focus.
+;;
 ;; `dimmer-use-colorspace` allows you to specify what color space the
 ;; dimming calculation is performed in.  In the majority of cases you
 ;; won't need to touch this setting.  See the docstring below for more
@@ -74,7 +96,7 @@
 (require 'subr-x)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; configuration
+;;; customization
 
 (defgroup dimmer nil
   "Highlight current-buffer by dimming faces on the others."
@@ -95,20 +117,27 @@ The variable has been superceded by `dimmer-exclusion-regexp-list`.
 See documentation for details."
  "v0.4.0-SNAPSHOT")
 
-(defcustom dimmer-exclusion-regexp-list nil
+(defcustom dimmer-exclusion-regexp-list '("^ \\*Minibuf-[0-9]+\\*$"
+                                          "^ \\*Echo.*\\*$")
   "List of regular expressions describing buffer names that are never dimmed."
   :type '(repeat (choice regexp))
   :group 'dimmer)
 
 (define-obsolete-variable-alias
   'dimmer-exclusion-predicates 'dimmer-prevent-dimming-predicates)
-(defcustom dimmer-prevent-dimming-predicates nil
+(defcustom dimmer-prevent-dimming-predicates '(window-minibuffer-p)
   "List of functions which prevent dimmer from altering dimmed buffer set.
 
 Functions in this list are called in turn with no arguments.  If any function
 returns a non-nil value, no buffers will be added to or removed from the set
 of dimmed buffers."
   :type '(repeat (choice function))
+  :group 'dimmer)
+
+(defcustom dimmer-watch-frame-focus-events t
+  "Should windows be dimmed when all Emacs frame(s) lose focus?
+Restart Emacs after changing this configuration."
+  :type '(boolean)
   :group 'dimmer)
 
 (defcustom dimmer-use-colorspace :cielab
@@ -137,7 +166,27 @@ wrong, then try HSV or RGB instead."
   :group 'dimmer)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; configuration
+
+(defun dimmer-configure-helm ()
+  "Convenience settings for helm users."
+  (with-no-warnings
+    (add-to-list
+     'dimmer-exclusion-regexp-list "^\\*[h|H]elm.*\\*$")
+    (add-to-list
+     'dimmer-prevent-dimming-predicates #'helm--alive-p)))
+
+(defun dimmer-configure-which-key ()
+  "Convenience settings for which-key-users."
+  (with-no-warnings
+    (add-to-list
+     'dimmer-exclusion-regexp-list "^ \\*which-key*$")
+    (add-to-list
+     'dimmer-prevent-dimming-predicates #'which-key--popup-showing-p)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; implementation
+
 (defvar dimmer-last-buffer nil
   "Identity of the last buffer to be made current.")
 
@@ -297,6 +346,30 @@ focus then dim the others.  Used in Emacs >= 27.0 only."
         (dimmer-dim-all)
       (dimmer-process-all))))
 
+(defun dimmer-manage-frame-focus-hooks (install)
+  "Manage the frame focus in/out hooks for dimmer.
+
+When INSTALL is t, install the appropriate hooks to catch focus
+events.  Otherwise remove the hooks.  This function has no effect
+when `dimmer-watch-frame-focus-events` is nil."
+  (when dimmer-watch-frame-focus-events
+    (if (boundp 'after-focus-change-function)
+        ;; emacs-version >= 27.0
+        (if install
+            (add-function :before
+                          after-focus-change-function
+                          #'dimmer-after-focus-change-handler)
+          (remove-function after-focus-change-function
+                           #'dimmer-after-focus-change-handler))
+      ;; else emacs-version < 27.0
+      (if install
+          (with-no-warnings
+            (add-hook 'focus-in-hook #'dimmer-config-change-handler)
+            (add-hook 'focus-out-hook #'dimmer-dim-all))
+        (with-no-warnings
+          (remove-hook 'focus-in-hook #'dimmer-config-change-handler)
+          (remove-hook 'focus-out-hook #'dimmer-dim-all))))))
+
 ;;;###autoload
 (define-minor-mode dimmer-mode
   "visually highlight the selected buffer"
@@ -306,22 +379,11 @@ focus then dim the others.  Used in Emacs >= 27.0 only."
   :require 'dimmer
   (if dimmer-mode
       (progn
-        (if (boundp 'after-focus-change-function) ; emacs-version >= 27.0
-            (add-function :before
-                          after-focus-change-function
-                          #'dimmer-after-focus-change-handler)
-          (with-no-warnings
-            (add-hook 'focus-in-hook #'dimmer-config-change-handler)
-            (add-hook 'focus-out-hook #'dimmer-dim-all)))
+        (dimmer-manage-frame-focus-hooks t)
         (add-hook 'post-command-hook #'dimmer-command-handler)
         (add-hook 'window-configuration-change-hook
                   #'dimmer-config-change-handler))
-    (if (boundp 'after-focus-change-function) ; emacs-version >= 27.0
-        (remove-function after-focus-change-function
-                         #'dimmer-after-focus-change-handler)
-      (with-no-warnings
-        (remove-hook 'focus-in-hook #'dimmer-config-change-handler)
-        (remove-hook 'focus-out-hook #'dimmer-dim-all)))
+    (dimmer-manage-frame-focus-hooks nil)
     (remove-hook 'post-command-hook #'dimmer-command-handler)
     (remove-hook 'window-configuration-change-hook
                  #'dimmer-config-change-handler)

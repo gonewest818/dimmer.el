@@ -17,7 +17,7 @@ lint: .elpa
 	$(EMACS) $(BATCH) -f elisp-lint-files-batch $(ELS)
 
 clean:
-	rm -f $(OBJECTS)
+	rm -f $(OBJECTS) dimmer.el-autoloads.el
 
 cleanelpa: clean
 	rm -rf .emacs/elpa .emacs/quelpa .emacs/.emacs-custom.el .elpa
