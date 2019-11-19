@@ -270,15 +270,15 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
   "Un-dim all buffers."
   (mapc 'dimmer-restore-buffer (buffer-list)))
 
-(defun dimmer-command-hook ()
+(defun dimmer-command-handler ()
   "Process all buffers if current buffer has changed."
-  (dimmer--dbg "dimmer-command-hook")
+  (dimmer--dbg "dimmer-command-handler")
   (unless (eq (window-buffer) dimmer-last-buffer)
     (dimmer-process-all)))
 
-(defun dimmer-config-change-hook ()
+(defun dimmer-config-change-handler ()
   "Process all buffers if window configuration has changed."
-  (dimmer--dbg "dimmer-config-change-hook")
+  (dimmer--dbg "dimmer-config-change-handler")
   (dimmer-process-all))
 
 (defun dimmer-after-focus-change-handler ()
@@ -309,18 +309,20 @@ focus then dim the others.  Used in Emacs >= 27.0 only."
                           after-focus-change-function
                           #'dimmer-after-focus-change-handler)
           (with-no-warnings
-            (add-hook 'focus-in-hook 'dimmer-config-change-hook)
-            (add-hook 'focus-out-hook 'dimmer-dim-all)))
-        (add-hook 'post-command-hook 'dimmer-command-hook)
-        (add-hook 'window-configuration-change-hook 'dimmer-config-change-hook))
+            (add-hook 'focus-in-hook #'dimmer-config-change-handler)
+            (add-hook 'focus-out-hook #'dimmer-dim-all)))
+        (add-hook 'post-command-hook #'dimmer-command-handler)
+        (add-hook 'window-configuration-change-hook
+                  #'dimmer-config-change-handler))
     (if (boundp 'after-focus-change-function) ; emacs-version >= 27.0
         (remove-function after-focus-change-function
                          #'dimmer-after-focus-change-handler)
       (with-no-warnings
-        (remove-hook 'focus-in-hook 'dimmer-config-change-hook)
-        (remove-hook 'focus-out-hook 'dimmer-dim-all)))
-    (remove-hook 'post-command-hook 'dimmer-command-hook)
-    (remove-hook 'window-configuration-change-hook 'dimmer-config-change-hook)
+        (remove-hook 'focus-in-hook #'dimmer-config-change-handler)
+        (remove-hook 'focus-out-hook #'dimmer-dim-all)))
+    (remove-hook 'post-command-hook #'dimmer-command-handler)
+    (remove-hook 'window-configuration-change-hook
+                 #'dimmer-config-change-handler)
     (dimmer-restore-all)))
 
 ;;;###autoload
