@@ -55,6 +55,9 @@
 ;; `dimmer-configure-helm` is a convenience function for helm users that
 ;; further modifies the customizations so helm buffers are not dimmed.
 ;;
+;; `dimmer-configure-hydra` is a convenience function for hydra users that
+;; modifies the customizations so "*LV*" buffers are not dimmed.
+;;
 ;; `dimmer-configure-which-key` is a convenience function for which-key
 ;; users that modifies the customizations so which-key popups are not dimmed.
 ;;
@@ -175,6 +178,12 @@ wrong, then try HSV or RGB instead."
      'dimmer-exclusion-regexp-list "^\\*[h|H]elm.*\\*$")
     (add-to-list
      'dimmer-prevent-dimming-predicates #'helm--alive-p)))
+
+(defun dimmer-configure-hydra ()
+  "Convenience settings for hydra users."
+  (with-no-warnings
+    (add-to-list
+     'dimmer-exclusion-regexp-list "^\\*LV\\*$")))
 
 (defun dimmer-configure-which-key ()
   "Convenience settings for which-key-users."
