@@ -9,7 +9,8 @@ refer to the issue number that was resolved.
 ## Snapshot (on melpa.org)
 
 - Features
-  - TBD
+  - Added the ability to change the background color, the foreground
+    color (default), or both [#20]
 - Bugfixes
   - TBD
 

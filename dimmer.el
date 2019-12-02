@@ -33,15 +33,12 @@
 ;; form without requiring you to define what is a "dim" version of
 ;; every face.
 ;;
-;; The `default` background color is the target for all dimming
-;; calculations.  If your default background is "white" then faces
-;; will be made brighter when "dimmed".  If your default background is
-;; a dark blue, then faces will be shifted "darker" and "more blue"
-;; when buffers are dimmed.
+;; `dimmer.el` can be configured to adjust foreground colors (default),
+;; background colors, or both.
 ;;
 ;; Usage:
 ;;
-;;      (require 'dimmer) ; unless installed as a package
+;;      (require 'dimmer)
 ;;      (dimmer-configure-which-key)
 ;;      (dimmer-configure-helm)
 ;;      (dimmer-mode t)
@@ -64,6 +61,9 @@
 ;; Please submit pull requests with configurations for other packages!
 ;;
 ;; Customization:
+;;
+;; `dimmer-adjustment-mode` controls what aspect of the color scheme is adjusted
+;; when dimming.  Choices are :foreground (default), :background, or :both.
 ;;
 ;; `dimmer-fraction` controls the degree to which buffers are dimmed.
 ;; Range is 0.0 - 1.0, and default is 0.20.  Increase value if you
@@ -102,7 +102,7 @@
 ;;; customization
 
 (defgroup dimmer nil
-  "Highlight current-buffer by dimming faces on the others."
+  "Highlight the current buffer by dimming the colors on the others."
   :prefix "dimmer-"
   :group 'convenience
   :link '(url-link :tag "GitHub" "https://github.com/gonewest818/dimmer.el"))
@@ -113,13 +113,20 @@
   :type '(float)
   :group 'dimmer)
 
+(defcustom dimmer-adjustment-mode :foreground
+  "Control what aspect of the color scheme is adjusted when dimming.
+Choices are :foreground (default), :background, or :both."
+  :type '(radio (const :tag "Foreground colors are dimmed" :foreground)
+                (const :tag "Background colors are dimmed" :background)
+                (const :tag "Foreground and background are dimmed" :both))
+  :group 'dimmer)
+
 (make-obsolete-variable
  'dimmer-exclusion-regexp
  "`dimmer-exclusion-regexp` is obsolete and has no effect in this session.
 The variable has been superceded by `dimmer-exclusion-regexp-list`.
 See documentation for details."
- "v0.4.0-SNAPSHOT")
-
+ "v0.4.0")
 (defcustom dimmer-exclusion-regexp-list '("^ \\*Minibuf-[0-9]+\\*$"
                                           "^ \\*Echo.*\\*$")
   "List of regular expressions describing buffer names that are never dimmed."
@@ -162,7 +169,7 @@ channel values < 0.0 or > 1.0).  When dimmer finds an
 \"impossible\" RGB value like that it simply clamps that value to
 fit in the range 0.0 - 1.0.  Clamping like this can lead to some
 colors looking \"wrong\".  If you think the dimmed values look
-wrong, then try HSV or RGB instead."
+wrong, then try HSL or RGB instead."
   :type '(radio (const :tag "Interpolate in CIELAB 1976" :cielab)
                 (const :tag "Interpolate in HSL" :hsl)
                 (const :tag "Interpolate in RGB" :rgb))
@@ -208,83 +215,129 @@ wrong, then try HSV or RGB instead."
 (defconst dimmer-dimmed-faces (make-hash-table :test 'equal)
   "Cache of face names with their computed dimmed values.")
 
-(defun dimmer-lerp (frac v0 v1)
-  "Use FRAC to compute a linear interpolation of V0 and V1."
-  (+ (* v0 (- 1.0 frac))
-     (* v1 frac)))
+(defun dimmer-lerp (frac c0 c1)
+  "Use FRAC to compute a linear interpolation of C0 and C1."
+  (+ (* c0 (- 1.0 frac))
+     (* c1 frac)))
 
-(defun dimmer-lerp-in-rgb (fg bg frac)
-  "Compute linear interpolation of FG and BG in RGB space.
+(defun dimmer-lerp-in-rgb (c0 c1 frac)
+  "Compute linear interpolation of C0 and C1 in RGB space.
 FRAC controls the interpolation."
   (apply 'color-rgb-to-hex
-         (cl-mapcar (apply-partially 'dimmer-lerp frac) fg bg)))
+         (cl-mapcar (apply-partially 'dimmer-lerp frac) c0 c1)))
 
-(defun dimmer-lerp-in-hsl (fg bg frac)
-  "Compute linear interpolation of FG and BG in HSL space.
+(defun dimmer-lerp-in-hsl (c0 c1 frac)
+  "Compute linear interpolation of C0 and C1 in HSL space.
 FRAC controls the interpolation."
   (apply 'color-rgb-to-hex
          (apply 'color-hsl-to-rgb
                 (cl-mapcar (apply-partially 'dimmer-lerp frac)
-                           (apply 'color-rgb-to-hsl fg)
-                           (apply 'color-rgb-to-hsl bg)))))
+                           (apply 'color-rgb-to-hsl c0)
+                           (apply 'color-rgb-to-hsl c1)))))
 
-(defun dimmer-lerp-in-cielab (fg bg frac)
-  "Compute linear interpolation of FG and BG in CIELAB space.
+(defun dimmer-lerp-in-cielab (c0 c1 frac)
+  "Compute linear interpolation of C0 and C1 in CIELAB space.
 FRAC controls the interpolation."
   (apply 'color-rgb-to-hex
-         (mapcar 'color-clamp
-                 (apply 'color-lab-to-srgb
-                        (cl-mapcar (apply-partially 'dimmer-lerp frac)
-                                   (apply 'color-srgb-to-lab fg)
-                                   (apply 'color-srgb-to-lab bg))))))
+         (cl-mapcar 'color-clamp
+                    (apply 'color-lab-to-srgb
+                           (cl-mapcar (apply-partially 'dimmer-lerp frac)
+                                      (apply 'color-srgb-to-lab c0)
+                                      (apply 'color-srgb-to-lab c1))))))
 
-(defun dimmer-compute-rgb (fg bg frac colorspace)
+(defun dimmer-compute-rgb (c0 c1 frac colorspace)
   "Compute a \"dimmed\" color via linear interpolation.
 
-Blends the foreground FG and the background BG using FRAC to
-control the interpolation. When FRAC is 0.0, the result is equal
-to FG.  When FRAC is 1.0, the result is equal to BG.
+Blends the two colors, C0 and C1, using FRAC to control the
+interpolation. When FRAC is 0.0, the result is equal to C0.  When
+FRAC is 1.0, the result is equal to C1.
 
 Any other value for FRAC means the result's hue, saturation, and
 value will be adjusted linearly so that the color sits somewhere
-between FG and BG.
+between C0 and C1.
 
 The interpolation is performed in a COLORSPACE which is specified
 with a symbol, :rgb, :hsv, or :cielab."
   (pcase colorspace
-    (:rgb    (dimmer-lerp-in-rgb fg bg frac))
-    (:hsv    (dimmer-lerp-in-hsl fg bg frac))
-    (:cielab (dimmer-lerp-in-cielab fg bg frac))
-    (_       (dimmer-lerp-in-cielab fg bg frac))))
+    (:rgb    (dimmer-lerp-in-rgb c0 c1 frac))
+    (:hsv    (dimmer-lerp-in-hsl c0 c1 frac))
+    (:cielab (dimmer-lerp-in-cielab c0 c1 frac))
+    (_       (dimmer-lerp-in-cielab c0 c1 frac))))
+
+(defun dimmer-cached-compute-rgb (c0 c1 frac colorspace)
+  "Lookup a \"dimmed\" color value from cache, else compute a value.
+This is essentially a memoization of `dimmer-compute-rgb` via a hash
+using the arguments C0, C1, FRAC, and COLORSPACE as the key."
+  (let ((key (format "%s-%s-%f-%s" c0 c1 frac dimmer-use-colorspace)))
+    (or (gethash key dimmer-dimmed-faces)
+        (let ((rgb (dimmer-compute-rgb (color-name-to-rgb c0)
+                                       (color-name-to-rgb c1)
+                                       frac
+                                       dimmer-use-colorspace)))
+          (when rgb
+            (puthash key rgb dimmer-dimmed-faces)
+            rgb)))))
 
 (defun dimmer-face-color (f frac)
   "Compute a dimmed version of the foreground color of face F.
-FRAC is the amount of dimming where 0.0 is no change and 1.0 is
-maximum change."
+If `dimmer-adjust-background-color` is true, adjust the
+background color as well.  FRAC is the amount of dimming where
+0.0 is no change and 1.0 is maximum change.  Returns a plist
+containing the new foreground (and if needed, new background)
+suitable for use with `face-remap-add-relative`."
   (let ((fg (face-foreground f))
-        (bg (face-background 'default)))
-    (when (and fg (color-defined-p fg)
-               bg (color-defined-p bg))
-      (let ((key (format "%s-%s-%f-%s" fg bg frac dimmer-use-colorspace)))
-        (or (gethash key dimmer-dimmed-faces)
-            (let ((rgb (dimmer-compute-rgb (color-name-to-rgb fg)
-                                           (color-name-to-rgb bg)
-                                           frac
-                                           dimmer-use-colorspace)))
-              (when rgb
-                (puthash key rgb dimmer-dimmed-faces)
-                rgb)))))))
+        (bg (face-background f))
+        (def-fg (face-foreground 'default))
+        (def-bg (face-background 'default))
+        ;; when mode is :both, the perceptual effect is "doubled"
+        (my-frac (if (eq dimmer-adjustment-mode :both)
+                     (/ frac 2.0)
+                   frac))
+        (result '()))
+    ;; We shift the desired components of F by FRAC amount toward the `default`
+    ;; color, thereby dimming or desaturating the overall appearance:
+    ;;   * When the `dimmer-adjustment-mode` is `:foreground` we move the
+    ;;     foreground component toward the `default` background.
+    ;;   * When the `dimmer-adjustment-mode` is :background we mofe the
+    ;;     background component of F toward the `default` foreground.`
+    (when (and (or (eq dimmer-adjustment-mode :foreground)
+                   (eq dimmer-adjustment-mode :both))
+               fg (color-defined-p fg)
+               def-bg (color-defined-p def-bg))
+      (setq result
+            (plist-put result :foreground
+                       (dimmer-cached-compute-rgb fg
+                                                  def-bg
+                                                  my-frac
+                                                  dimmer-use-colorspace))))
+    (when (and (or (eq dimmer-adjustment-mode :background)
+                   (eq dimmer-adjustment-mode :both))
+               bg (color-defined-p bg)
+               def-fg (color-defined-p def-fg))
+      (setq result
+            (plist-put result :background
+                       (dimmer-cached-compute-rgb bg
+                                                  def-fg
+                                                  my-frac
+                                                  dimmer-use-colorspace))))
+    result))
+
+(defun dimmer-filtered-face-list ()
+  "Return a filtered version of `face-list`.
+Filtering is needed to exclude faces that shouldn't be dimmed."
+  ;; `fringe` is problematic because it is shared for all windows,
+  ;; so for now we just leave it alone.
+  (remove 'fringe (face-list)))
 
 (defun dimmer-dim-buffer (buf frac)
   "Dim all the faces defined in the buffer BUF.
 FRAC controls the dimming as defined in ‘dimmer-face-color’."
   (with-current-buffer buf
     (unless dimmer-buffer-face-remaps
-      (dolist (f (face-list))
+      (dolist (f (dimmer-filtered-face-list))
         (let ((c (dimmer-face-color f frac)))
           (when c  ; e.g. "(when-let* ((c (...)))" in Emacs 26
-            (push (face-remap-add-relative f :foreground c)
-                  dimmer-buffer-face-remaps)))))))
+            (push (face-remap-add-relative f c) dimmer-buffer-face-remaps)))))))
 
 (defun dimmer-restore-buffer (buf)
   "Restore the un-dimmed faces in the buffer BUF."
