@@ -8,14 +8,36 @@ refer to the issue number that was resolved.
 
 ## Snapshot (on melpa.org)
 
-- Dev and CI environment updates
-  - Replace Cask with custom .emacs/init.el
-  - Adopt `elisp-lint` package as an additional code quality test
+- Features
+  - TBD
+- Bugfixes
+  - TBD
+
+## 0.4.0 (stable.melpa.org)
+
+- Features
+  - Replaced `dimmer-exclusion-regexp` with simpler
+    `dimmer-exclusion-regexp-list` [#16]
+  - Added `dimmer-prevent-dimming-predicates` to inhibit the dimming /
+    un-dimming of buffers when the specified condition is true. Useful for
+    packages that display pop-ups temporarily. [#16]
+  - Added `dimmer-configure-helm`, `dimmer-configure-which-key`, and
+    `dimmer-configure-hydra` to simplify configuration for those packages.
+    [#10, #15, #17 & #19]
+  - Added `dimmer-watch-frame-focus-events` to control whether dimmer will
+    dim all buffers in all frames when Emacs no longer has focus in the
+    windowing system.
+  - By default, do not dim the Minibuffer [#10]
+- Bugfixes
+  - Properly handle focus in/out events on Emacs 27 [#24]
+- Development and CI environment updates
+  - Replace [Cask](https://github.com/cask/cask) dependency with custom
+    .emacs/init.el
   - Migrate tests to CircleCI and drop Travis CI [#11]
+  - Adopt `elisp-lint` package as an additional code quality test
   - Make `.dir-locals.el` settings apply to `emacs-lisp-mode` only [#13]
 
-
-## 0.3.0 (stable.melpa.org)
+## 0.3.0
 
 - Features
   - Improved dimming calculation:
