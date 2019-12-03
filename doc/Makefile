@@ -5,8 +5,6 @@ VIDEOS = dimmer-demo.webm
 
 GIFS = $(VIDEOS:.webm=.gif)
 
-PALETTES = $(VIDEOS:.webm=.pal.png)
-
 default: $(GIFS)
 
 clean:
@@ -14,7 +12,5 @@ clean:
 
 %.gif : %.webm
 	ffmpeg -i $< -filter_complex "[0:v] fps=15,scale=w=640:h=-1,split [a][b];[a] palettegen [p];[b][p] paletteuse" $@
-
-#ffmpeg -i $< -filter_complex "[0:v] fps=15,scale=w=640:h=-1,split [a][b];[a] palettegen=stats_mode=single [p];[b][p] paletteuse=new=1" $@
 
 
