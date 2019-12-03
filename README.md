@@ -19,7 +19,9 @@ background colors, or both.
 
 ## Demo
 
-![Demo Video](https://github.com/gonewest818/dimmer.el/raw/master/doc/dimmer-demo.gif)
+[![Demo Video](https://github.com/gonewest818/dimmer.el/raw/master/doc/dimmer-demo.gif)](https://github.com/gonewest818/dimmer.el/raw/master/doc/dimmer-demo.webm)
+
+(click thumbnail for higher quality)
 
 ## Usage Example
 
