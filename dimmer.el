@@ -257,10 +257,10 @@ value will be adjusted linearly so that the color sits somewhere
 between C0 and C1.
 
 The interpolation is performed in a COLORSPACE which is specified
-with a symbol, :rgb, :hsv, or :cielab."
+with a symbol, :rgb, :hsl, or :cielab."
   (pcase colorspace
     (:rgb    (dimmer-lerp-in-rgb c0 c1 frac))
-    (:hsv    (dimmer-lerp-in-hsl c0 c1 frac))
+    (:hsl    (dimmer-lerp-in-hsl c0 c1 frac))
     (:cielab (dimmer-lerp-in-cielab c0 c1 frac))
     (_       (dimmer-lerp-in-cielab c0 c1 frac))))
 
