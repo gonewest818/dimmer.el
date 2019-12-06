@@ -196,7 +196,7 @@ wrong, then try HSL or RGB instead."
   "Convenience settings for which-key-users."
   (with-no-warnings
     (add-to-list
-     'dimmer-exclusion-regexp-list "^ \\*which-key*$")
+     'dimmer-exclusion-regexp-list "^ \\*which-key\\*$")
     (add-to-list
      'dimmer-prevent-dimming-predicates #'which-key--popup-showing-p)))
 
