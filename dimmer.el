@@ -229,11 +229,23 @@ FRAC controls the interpolation."
 (defun dimmer-lerp-in-hsl (c0 c1 frac)
   "Compute linear interpolation of C0 and C1 in HSL space.
 FRAC controls the interpolation."
+  ;; Implementation note: We must handle this case carefully to ensure the
+  ;; hue is interpolated over the "shortest" arc around the color wheel.
   (apply 'color-rgb-to-hex
          (apply 'color-hsl-to-rgb
-                (cl-mapcar (apply-partially 'dimmer-lerp frac)
-                           (apply 'color-rgb-to-hsl c0)
-                           (apply 'color-rgb-to-hsl c1)))))
+                (cl-destructuring-bind (h0 s0 l0)
+                    (apply 'color-rgb-to-hsl c0)
+                  (cl-destructuring-bind (h1 s1 l1)
+                      (apply 'color-rgb-to-hsl c1)
+                    (if (> (abs (- h1 h0)) 0.5)
+                        ;; shortest arc "wraps around"
+                        (list (mod (dimmer-lerp (- 1.0 frac) h1 (+ 1.0 h0)) 1.0)
+                              (dimmer-lerp frac s0 s1)
+                              (dimmer-lerp frac l0 l1))
+                      ;; shortest arc is the natural one
+                      (list (dimmer-lerp frac h0 h1)
+                            (dimmer-lerp frac s0 s1)
+                            (dimmer-lerp frac l0 l1))))))))
 
 (defun dimmer-lerp-in-cielab (c0 c1 frac)
   "Compute linear interpolation of C0 and C1 in CIELAB space.

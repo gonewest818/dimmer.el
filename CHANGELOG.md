@@ -12,7 +12,7 @@ refer to the issue number that was resolved.
   - Added the ability to change the background color, the foreground
     color (default), or both [#20]
 - Bugfixes
-  - TBD
+  - Fixed the dimming math when working in HSL colorspace [#21]
 
 ## 0.4.0 (stable.melpa.org)
 
