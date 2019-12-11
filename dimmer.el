@@ -122,13 +122,16 @@ Choices are :foreground (default), :background, or :both."
   :group 'dimmer)
 
 (make-obsolete-variable
- 'dimmer-exclusion-regexp
- "`dimmer-exclusion-regexp` is obsolete and has no effect in this session.
-The variable has been superceded by `dimmer-exclusion-regexp-list`.
+  'dimmer-exclusion-regexp
+  "`dimmer-exclusion-regexp` is obsolete and has no effect in this session.
+The variable has been superseded by `dimmer-buffer-exclusion-regexps`.
 See documentation for details."
- "v0.4.0")
-(defcustom dimmer-exclusion-regexp-list '("^ \\*Minibuf-[0-9]+\\*$"
-                                          "^ \\*Echo.*\\*$")
+  "v0.4.0")
+
+(define-obsolete-variable-alias
+  'dimmer-exclusion-regexp-list 'dimmer-buffer-exclusion-regexps)
+(defcustom dimmer-buffer-exclusion-regexps '("^ \\*Minibuf-[0-9]+\\*$"
+                                              "^ \\*Echo.*\\*$")
   "List of regular expressions describing buffer names that are never dimmed."
   :type '(repeat (choice regexp))
   :group 'dimmer)
@@ -362,14 +365,16 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
   "Get filtered subset of all visible buffers in all frames."
   (let (buffers)
     (walk-windows
-     (lambda (win)
-       (let* ((buf (window-buffer win))
-              (name (buffer-name buf)))
-         (unless (cl-some (lambda (rxp) (string-match-p rxp name))
-                          dimmer-exclusion-regexp-list)
-           (push buf buffers))))
-     nil
-     t)
+      (lambda (win)
+        (let* ((buf (window-buffer win))
+                (name (buffer-name buf)))
+          (unless (or (cl-some (lambda (rxp) (string-match-p rxp name))
+                        dimmer-buffer-exclusion-regexps)
+                    (cl-some (lambda (f) (not (funcall f buf)))
+                      dimmer-buffer-exclusion-predicates))
+            (push buf buffers))))
+      nil
+      t)
     buffers))
 
 (defun dimmer-process-all ()
