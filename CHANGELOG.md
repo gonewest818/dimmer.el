@@ -8,13 +8,17 @@ refer to the issue number that was resolved.
 
 ## Snapshot (on melpa.org)
 
+- TBD
+
+## 0.4.1 (stable.melpa.org)
+
 - Features
   - Added the ability to change the background color, the foreground
     color (default), or both [#20]
 - Bugfixes
   - Fixed the dimming math when working in HSL colorspace [#21]
 
-## 0.4.0 (stable.melpa.org)
+## 0.4.0
 
 - Features
   - Replaced `dimmer-exclusion-regexp` with simpler
