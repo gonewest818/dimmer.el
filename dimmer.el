@@ -69,9 +69,13 @@
 ;; Range is 0.0 - 1.0, and default is 0.20.  Increase value if you
 ;; like the other buffers to be more dim.
 ;;
-;; `dimmer-exclusion-regexp-list` can be used to specify buffers that
+;; `dimmer-buffer-exclusion-regexps` can be used to specify buffers that
 ;; should never be dimmed.  If the buffer name matches any regexp in
 ;; this list then `dimmer.el` will not dim that buffer.
+;;
+;; `dimmer-buffer-exclusion-predicates` can be used to specify buffers that
+;; should never be dimmed.  If any predicate function in this list
+;; returns true for the buffer then `dimmer.el` will not dim that buffer.
 ;;
 ;; `dimmer-prevent-dimming-predicates` can be used to prevent dimmer from
 ;; altering the dimmed buffer list.  This can be used to detect cases
@@ -122,18 +126,27 @@ Choices are :foreground (default), :background, or :both."
   :group 'dimmer)
 
 (make-obsolete-variable
-  'dimmer-exclusion-regexp
-  "`dimmer-exclusion-regexp` is obsolete and has no effect in this session.
+ 'dimmer-exclusion-regexp
+ "`dimmer-exclusion-regexp` is obsolete and has no effect in this session.
 The variable has been superseded by `dimmer-buffer-exclusion-regexps`.
 See documentation for details."
-  "v0.4.0")
+ "v0.4.0")
 
 (define-obsolete-variable-alias
   'dimmer-exclusion-regexp-list 'dimmer-buffer-exclusion-regexps)
 (defcustom dimmer-buffer-exclusion-regexps '("^ \\*Minibuf-[0-9]+\\*$"
-                                              "^ \\*Echo.*\\*$")
+                                             "^ \\*Echo.*\\*$")
   "List of regular expressions describing buffer names that are never dimmed."
   :type '(repeat (choice regexp))
+  :group 'dimmer)
+
+(defcustom dimmer-buffer-exclusion-predicates '()
+  "List of predicate functions indicating buffers that are never dimmed.
+
+Functions in the list are called while visiting each available
+buffer.  If the predicate function returns a truthy value, then
+the buffer is not dimmed."
+  :type '(repeat (choice function))
   :group 'dimmer)
 
 (define-obsolete-variable-alias
@@ -365,16 +378,16 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
   "Get filtered subset of all visible buffers in all frames."
   (let (buffers)
     (walk-windows
-      (lambda (win)
-        (let* ((buf (window-buffer win))
-                (name (buffer-name buf)))
-          (unless (or (cl-some (lambda (rxp) (string-match-p rxp name))
-                        dimmer-buffer-exclusion-regexps)
-                    (cl-some (lambda (f) (not (funcall f buf)))
-                      dimmer-buffer-exclusion-predicates))
-            (push buf buffers))))
-      nil
-      t)
+     (lambda (win)
+       (let* ((buf (window-buffer win))
+              (name (buffer-name buf)))
+         (unless (or (cl-some (lambda (rxp) (string-match-p rxp name))
+                              dimmer-buffer-exclusion-regexps)
+                     (cl-some (lambda (f) (not (funcall f buf)))
+                              dimmer-buffer-exclusion-predicates))
+           (push buf buffers))))
+     nil
+     t)
     buffers))
 
 (defun dimmer-process-all ()

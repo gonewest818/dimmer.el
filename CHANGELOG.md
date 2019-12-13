@@ -15,6 +15,10 @@ refer to the issue number that was resolved.
 - Features
   - Added the ability to change the background color, the foreground
     color (default), or both [#20]
+  - Added `dimmer-buffer-exclusion-predicates` as another mechanism
+    to specify buffers that can't be dimmed, resolving [#25]
+  - Renamed `dimmer-exclusion-regexp-list` to `dimmer-buffer-exclusion-regexps`
+    to clarify what this setting does
 - Bugfixes
   - Fixed the dimming math when working in HSL colorspace [#21]
 
