@@ -383,7 +383,7 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
               (name (buffer-name buf)))
          (unless (or (cl-some (lambda (rxp) (string-match-p rxp name))
                               dimmer-buffer-exclusion-regexps)
-                     (cl-some (lambda (f) (not (funcall f buf)))
+                     (cl-some (lambda (f) (funcall f buf))
                               dimmer-buffer-exclusion-predicates))
            (push buf buffers))))
      nil
