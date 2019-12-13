@@ -57,11 +57,15 @@ adjusted when dimming.  Choices are `:foreground` (default),
 Range is 0.0 - 1.0, and default is 0.20.  Increase value if you
 like the other buffers to be more dim.
 
-* `dimmer-exclusion-regexp-list` can be used to specify buffers that
-should never be dimmed.  If the buffer name matches any regexp in this
-list then `dimmer.el` will not dim that buffer.  Note, this variable
-replaces `dimmer-exclusion-regexp` which is obsolete starting with
-release 0.4.0 of this package.)
+* `dimmer-buffer-exclusion-regexps` can be used to specify buffers
+that should never be dimmed.  If the buffer name matches any regexp in
+this list then `dimmer.el` will not dim that buffer.  Note, this
+variable replaces `dimmer-exclusion-regexp` and
+`dimmer-exclusion-regexp-list`, which are now obsolete.
+
+* `dimmer-buffer-exclusion-predicates` can be used to specify buffers
+that should never be dimmed.  If any predicate function in this list
+returns true for the buffer then `dimmer.el` will not dim that buffer.
 
 * `dimmer-prevent-dimming-predicates` can be used to prevent dimmer from
 altering the dimmed buffer list.  This can be used to detect cases
