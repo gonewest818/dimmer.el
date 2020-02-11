@@ -133,7 +133,7 @@ customization screens for more background on this issue.
 
 ## License
 
-Copyright (C) 2017-2019 Neil Okamoto
+Copyright (C) 2017-2020 Neil Okamoto
 
 Distributed under the GNU General Public License, Version 3
 
