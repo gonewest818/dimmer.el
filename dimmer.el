@@ -206,7 +206,7 @@ wrong, then try HSL or RGB instead."
   "Convenience settings for hydra users."
   (with-no-warnings
     (add-to-list
-     'dimmer-exclusion-regexp-list "^\\*LV\\*$")))
+     'dimmer-exclusion-regexp-list "^ \\*LV\\*$")))
 
 (defun dimmer-configure-which-key ()
   "Convenience settings for which-key-users."
