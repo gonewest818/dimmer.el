@@ -54,8 +54,10 @@ adjusted when dimming.  Choices are `:foreground` (default),
 `:background`, or `:both`. 
 
 * `dimmer-fraction` controls the degree to which buffers are dimmed.
-Range is 0.0 - 1.0, and default is 0.20.  Increase value if you
-like the other buffers to be more dim.
+Typical range is 0.0 - 1.0, and default is 0.20.  Increase value if
+you like the other buffers to be more dim.  Some users have pointed
+out to me that this value can actually be negative(!) with interesting
+effects.
 
 * `dimmer-buffer-exclusion-regexps` can be used to specify buffers
 that should never be dimmed.  If the buffer name matches any regexp in
@@ -86,19 +88,43 @@ dimming calculation is performed in. In the majority of cases you
 won't need to touch this setting. See Troubleshooting below ("dimmed
 colors look wrong") for an example where you might need to set this.
 
-## How Colors Are Adjusted
+## How colors are adjusted
 
-This package chooses a "dimmed" version of the foreground (and
-optionaly the background color) of each of your defined faces.  It
-does this by shifting everything by a fraction toward the `default`
-face.
+This package chooses a "dimmed" version of the foreground (and/or the
+background color) of each of your defined faces.  It does this by
+shifting those face some fraction of the way toward the colors defined
+in the `default` face.
 
-If your `default` foreground is "white" then the background colors
-of each of your faces will be shifted toward "white" when dimmed.
+In spite of the name I chose for this package, the newly adjusted
+color isn't always "dimmer" that the original. It's more accurate to
+say we're reducing the contrast of your color theme by bringing the
+foreground and background colors closer together.
 
-Similarly, if your `default` background is a dark blue, then the
-foreground colors of your faces will be shifted "darker" and "more
-blue" when buffers are dimmed.
+Here are a few examples of that.
+
+* Let's say you have a theme with "black" text on a "white"
+  background. When dimmer acts on a buffer like that, the text becomes
+  a "dark gray" (when in `:foreground` mode), or the background
+  becomes a "light gray" (when in `:background` mode). The result is
+  that the overall contrast between the foreground and background is
+  reduced because the dark and light grays are closer in value than
+  then original black and white.
+  
+* Conversely, if your theme is "white" text on "black" background,
+  then the dimmed version of that is "light gray" text on a "dark
+  gray" background.
+
+* Finally, it's not just the lightness but also the hue that is
+  adjusted.  So if your theme is "light yellow" text on a "dark blue"
+  background then imagine a color gradient between those two
+  colors. The "dimmed" text will be darker, with a bit of blue
+  added. The background will be lighter with a little bit of yellow
+  added.
+
+Perhaps this all sounds complicated but rest assured that in practice,
+the dimmed colors will look natural and (most importantly) will be
+consistent with your selected theme.  It'll just seem like the selected
+buffer "pops" visually compared to the rest.
 
 ## Troubleshooting
 
