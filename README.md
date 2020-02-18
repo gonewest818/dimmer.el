@@ -42,6 +42,9 @@ further modifies the customizations so helm buffers are not dimmed.
 * `dimmer-configure-hydra` is a convenience function for hydra users
 that modifies the customizations so "*LV*" buffers are not dimmed.
 
+* `dimmer-configure-org` is a convenience function for org users that
+modifies the customizations so org-mode buffers are not dimmed.
+
 * `dimmer-configure-which-key` is a convenience function for which-key
 users that modifies the customizations so which-key popups are not dimmed.
 
