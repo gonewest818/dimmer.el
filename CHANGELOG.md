@@ -9,10 +9,24 @@ refer to the issue number that was resolved.
 ## Snapshot (on melpa.org)
 
 - Features
-  - Added `dimmer-buffer-exclusion-predicates` as another mechanism
-    to specify buffers that can't be dimmed, resolving [#25]
-  - Renamed `dimmer-exclusion-regexp-list` to `dimmer-buffer-exclusion-regexps`
-    to clarify what this setting does
+  - Added `dimmer-buffer-exclusion-predicates` as another mechanism to
+    specify buffers that can't be dimmed, resolving [#25].
+  - Renamed `dimmer-exclusion-regexp-list` to
+    `dimmer-buffer-exclusion-regexps` to clarify what this setting
+    does.
+  - Added `dimmer-configure-org` [#32]
+  - Expanded the part of the documentation that describes what the
+    "dimming" calculation really does. [#31]
+- Bugfixes
+  - Fixed a bug where the `*Org Agenda*` buffer got "stuck" in a
+    dimmed state for users who install `org-plus-contrib`. [#33]
+  - Fixed typo in the detection of ` *LV*` buffers used in `hydra` and
+    other packages. [#35]
+- Development and CI improvements
+  - Added more debugging print statements with controllable verbosity.
+  - Upgraded to latest `elisp-lint` release.
+  - Added Emacs 27 to the CI test matrix.
+  - Update build steps to download ELPA's new gnupg signing key explicitly.
 
 ## 0.4.1 (stable.melpa.org)
 
