@@ -238,6 +238,8 @@ integer for more verbosity.")
 
 (defvar-local dimmer-buffer-face-remaps nil
   "Per-buffer face remappings needed for later clean up.")
+;; don't allow major mode change to kill the local variable
+(put 'dimmer-buffer-face-remaps 'permanent-local t)
 
 (defconst dimmer-dimmed-faces (make-hash-table :test 'equal)
   "Cache of face names with their computed dimmed values.")
