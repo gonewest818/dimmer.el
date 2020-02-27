@@ -231,8 +231,10 @@ wrong, then try HSL or RGB instead."
 (defvar dimmer-last-buffer nil
   "Identity of the last buffer to be made current.")
 
-(defvar dimmer-debug-messages nil
-  "Enable debugging output to *Messages* buffer.")
+(defvar dimmer-debug-messages 0
+  "Control debugging output to *Messages* buffer.
+Set 0 to disable all output, 1 for basic output, or a larger
+integer for more verbosity.")
 
 (defvar-local dimmer-buffer-face-remaps nil
   "Per-buffer face remappings needed for later clean up.")
@@ -370,18 +372,34 @@ Filtering is needed to exclude faces that shouldn't be dimmed."
   "Dim all the faces defined in the buffer BUF.
 FRAC controls the dimming as defined in ‘dimmer-face-color’."
   (with-current-buffer buf
+    (dimmer--dbg 1 "dimmer-dim-buffer: BEFORE '%s' (%s)" buf
+                 (alist-get 'default face-remapping-alist))
+    (dimmer--dbg 2 "dimmer-buffer-face-remaps: %s"
+                 (alist-get 'default dimmer-buffer-face-remaps))
     (unless dimmer-buffer-face-remaps
       (dolist (f (dimmer-filtered-face-list))
         (let ((c (dimmer-face-color f frac)))
           (when c  ; e.g. "(when-let* ((c (...)))" in Emacs 26
-            (push (face-remap-add-relative f c) dimmer-buffer-face-remaps)))))))
+            (push (face-remap-add-relative f c) dimmer-buffer-face-remaps)))))
+    (dimmer--dbg 2 "dimmer-buffer-face-remaps: %s"
+                 (alist-get 'default dimmer-buffer-face-remaps))
+    (dimmer--dbg 2 "dimmer-dim-buffer: AFTER '%s' (%s)" buf
+                 (alist-get 'default face-remapping-alist))))
 
 (defun dimmer-restore-buffer (buf)
   "Restore the un-dimmed faces in the buffer BUF."
   (with-current-buffer buf
+    (dimmer--dbg 1 "dimmer-restore-buffer: BEFORE '%s' (%s)" buf
+                 (alist-get 'default face-remapping-alist))
+    (dimmer--dbg 2 "dimmer-buffer-face-remaps: %s"
+                 (alist-get 'default dimmer-buffer-face-remaps))
     (when dimmer-buffer-face-remaps
       (mapc 'face-remap-remove-relative dimmer-buffer-face-remaps)
-      (setq dimmer-buffer-face-remaps nil))))
+      (setq dimmer-buffer-face-remaps nil))
+    (dimmer--dbg 2 "dimmer-buffer-face-remaps: %s"
+                 (alist-get 'default dimmer-buffer-face-remaps))
+    (dimmer--dbg 2 "dimmer-restore-buffer: AFTER '%s' (%s)" buf
+                 (alist-get 'default face-remapping-alist))))
 
 (defun dimmer-filtered-buffer-list ()
   "Get filtered subset of all visible buffers in all frames."
@@ -398,40 +416,44 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
            (push buf buffers))))
      nil
      t)
+    (dimmer--dbg 3 "dimmer-filtered-buffer-list: %s" buffers)
     buffers))
 
 (defun dimmer-process-all ()
   "Process all buffers and dim or un-dim each."
+  (dimmer--dbg-buffers 1 "dimmer-process-all")
   (let ((selected (current-buffer))
         (ignore (cl-some (lambda (f) (and (fboundp f) (funcall f)))
                          dimmer-prevent-dimming-predicates)))
     (setq dimmer-last-buffer selected)
     (unless ignore
       (dolist (buf (dimmer-filtered-buffer-list))
+        (dimmer--dbg 2 "dimmer-process-all: buf %s" buf)
         (if (eq buf selected)
             (dimmer-restore-buffer buf)
           (dimmer-dim-buffer buf dimmer-fraction))))))
 
 (defun dimmer-dim-all ()
   "Dim all buffers."
-  (dimmer--dbg "dimmer-dim-all")
+  (dimmer--dbg-buffers 1 "dimmer-dim-all")
   (mapc (lambda (buf)
           (dimmer-dim-buffer buf dimmer-fraction))
         (buffer-list)))
 
 (defun dimmer-restore-all ()
   "Un-dim all buffers."
+  (dimmer--dbg-buffers 1 "dimmer-restore-all")
   (mapc 'dimmer-restore-buffer (buffer-list)))
 
 (defun dimmer-command-handler ()
   "Process all buffers if current buffer has changed."
-  (dimmer--dbg "dimmer-command-handler")
+  (dimmer--dbg-buffers 1 "dimmer-command-handler")
   (unless (eq (window-buffer) dimmer-last-buffer)
     (dimmer-process-all)))
 
 (defun dimmer-config-change-handler ()
   "Process all buffers if window configuration has changed."
-  (dimmer--dbg "dimmer-config-change-handler")
+  (dimmer--dbg-buffers 1 "dimmer-config-change-handler")
   (dimmer-process-all))
 
 (defun dimmer-after-focus-change-handler ()
@@ -439,7 +461,7 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
 Walk the `frame-list` and check the state of each one.  If none
 of the frames has focus then dim them all.  If any frame has
 focus then dim the others.  Used in Emacs >= 27.0 only."
-  (dimmer--dbg "dimmer-after-focus-change-handler")
+  (dimmer--dbg-buffers 1 "dimmer-after-focus-change-handler")
   (let ((focus-out t))
     (with-no-warnings
       (dolist (f (frame-list) focus-out)
@@ -517,18 +539,21 @@ when `dimmer-watch-frame-focus-events` is nil."
   (dimmer--debug-buffer-face-remaps name t)
   (redraw-display))
 
-(defun dimmer--dbg (label)
-  "Print a debug state with the given LABEL."
-  (if dimmer-debug-messages
-      (let ((inhibit-message t))
-        (message "%s: cb '%s' wb '%s' last '%s' %s"
-                 label
-                 (current-buffer)
-                 (window-buffer)
-                 dimmer-last-buffer
-                 (if (not (eq (current-buffer) (window-buffer)))
-                     "**"
-                   "")))))
+(defun dimmer--dbg (v fmt &rest args)
+  "Print debug message at verbosity V, filling format string FMT with ARGS."
+  (when (>= dimmer-debug-messages v)
+    (apply #'message fmt args)))
+
+(defun dimmer--dbg-buffers (v label)
+  "Print debug buffer state at verbosity V and the given LABEL."
+  (when (>= dimmer-debug-messages v)
+    (let ((inhibit-message t)
+          (cb (current-buffer))
+          (wb (window-buffer)))
+      (message "%s: cb '%s' <== lb '%s' %s" label cb dimmer-last-buffer
+               (if (not (eq cb wb))
+                   (format "wb '%s' **" wb)
+                 "")))))
 
 (provide 'dimmer)
 
