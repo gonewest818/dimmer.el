@@ -207,15 +207,33 @@ wrong, then try HSL or RGB instead."
 
 (defun dimmer-configure-hydra ()
   "Convenience settings for hydra users."
-  (with-no-warnings
-    (add-to-list
-     'dimmer-exclusion-regexp-list "^ \\*LV\\*$")))
+  (add-to-list
+   'dimmer-exclusion-regexp-list "^ \\*LV\\*$"))
+
+(defun dimmer-configure-posframe ()
+  "Convenience settings for packages depending on posframe.
+
+Note, packages that use posframe aren't required to be consistent
+about how they name their buffers, but many of them tend to
+include the words \"posframe\" and \"buffer\" in the buffer's
+name.  Examples include:
+
+  - \" *ivy-posframe-buffer*\"
+  - \" *company-posframe-buffer*\"
+  - \" *flycheck-posframe-buffer*\"
+  - \" *ddskk-posframe-buffer*\"
+
+If this setting doesn't work for you, you still have the option
+of adding another regular expression to catch more things, or
+in some cases you can customize the other package and ensure it
+uses a buffer name that fits this pattern."
+  (add-to-list
+   'dimmer-exclusion-regexp-list "^ \\*.*posframe.*buffer.*\\*$"))
 
 (defun dimmer-configure-org ()
   "Convenience settings for org users."
-  (with-no-warnings
-    (add-to-list 'dimmer-exclusion-regexp-list "^\\*Org Select\\*$")
-    (add-to-list 'dimmer-exclusion-regexp-list "^ \\*Agenda Commands\\*$")))
+  (add-to-list 'dimmer-exclusion-regexp-list "^\\*Org Select\\*$")
+  (add-to-list 'dimmer-exclusion-regexp-list "^ \\*Agenda Commands\\*$"))
 
 (defun dimmer-configure-which-key ()
   "Convenience settings for which-key-users."
