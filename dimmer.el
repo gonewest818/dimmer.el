@@ -33,7 +33,7 @@
 ;; form without requiring you to define what is a "dim" version of
 ;; every face.
 ;;
-;; `dimmer.el` can be configured to adjust foreground colors (default),
+;; `dimmer.el' can be configured to adjust foreground colors (default),
 ;; background colors, or both.
 ;;
 ;; Usage:
@@ -49,50 +49,57 @@
 ;; consideration, so that most packages that use the minibuffer for
 ;; interaction will behave as users expect.
 ;;
-;; `dimmer-configure-helm` is a convenience function for helm users that
-;; further modifies the customizations so helm buffers are not dimmed.
+;; `dimmer-configure-company-box' is a convenience function for users
+;; of company-box.  It prevents dimming the buffer you are editing when
+;; a company-box popup is displayed.
 ;;
-;; `dimmer-configure-hydra` is a convenience function for hydra users that
-;; modifies the customizations so "*LV*" buffers are not dimmed.
+;; `dimmer-configure-helm' is a convenience function for helm users to
+;; ensure helm buffers are not dimmed.
 ;;
-;; `dimmer-configure-org` is a convenience function for org users that
-;; modifies the customizations so org-mode buffers are not dimmed.
+;; `dimmer-configure-hydra' is a convenience function for hydra users to
+;; ensure  "*LV*" buffers are not dimmed.
 ;;
-;; `dimmer-configure-which-key` is a convenience function for which-key
-;; users that modifies the customizations so which-key popups are not dimmed.
+;; `dimmer-configure-org' is a convenience function for org users to
+;; ensure org-mode buffers are not dimmed.
+;;
+;; `dimmer-configure-posframe' is a convenience function for posframe
+;; users to ensure posframe buffers are not dimmed.
+;;
+;; `dimmer-configure-which-key' is a convenience function for which-key
+;; users to ensure which-key popups are not dimmed.
 ;;
 ;; Please submit pull requests with configurations for other packages!
 ;;
 ;; Customization:
 ;;
-;; `dimmer-adjustment-mode` controls what aspect of the color scheme is adjusted
+;; `dimmer-adjustment-mode' controls what aspect of the color scheme is adjusted
 ;; when dimming.  Choices are :foreground (default), :background, or :both.
 ;;
-;; `dimmer-fraction` controls the degree to which buffers are dimmed.
+;; `dimmer-fraction' controls the degree to which buffers are dimmed.
 ;; Range is 0.0 - 1.0, and default is 0.20.  Increase value if you
 ;; like the other buffers to be more dim.
 ;;
-;; `dimmer-buffer-exclusion-regexps` can be used to specify buffers that
+;; `dimmer-buffer-exclusion-regexps' can be used to specify buffers that
 ;; should never be dimmed.  If the buffer name matches any regexp in
-;; this list then `dimmer.el` will not dim that buffer.
+;; this list then `dimmer.el' will not dim that buffer.
 ;;
-;; `dimmer-buffer-exclusion-predicates` can be used to specify buffers that
+;; `dimmer-buffer-exclusion-predicates' can be used to specify buffers that
 ;; should never be dimmed.  If any predicate function in this list
-;; returns true for the buffer then `dimmer.el` will not dim that buffer.
+;; returns true for the buffer then `dimmer.el' will not dim that buffer.
 ;;
-;; `dimmer-prevent-dimming-predicates` can be used to prevent dimmer from
+;; `dimmer-prevent-dimming-predicates' can be used to prevent dimmer from
 ;; altering the dimmed buffer list.  This can be used to detect cases
 ;; where a package pops up a window temporarily, and we don't want the
 ;; dimming to change.  If any function in this list returns a non-nil
 ;; value, dimming state will not be changed.
 ;;
-;; `dimmer-watch-frame-focus-events` controls whether dimmer will dim all
+;; `dimmer-watch-frame-focus-events' controls whether dimmer will dim all
 ;; buffers when Emacs no longer has focus in the windowing system.  This
 ;; is enabled by default.  Some users may prefer to set this to nil, and
 ;; have the dimmed / not dimmed buffers stay as-is even when Emacs
 ;; doesn't have focus.
 ;;
-;; `dimmer-use-colorspace` allows you to specify what color space the
+;; `dimmer-use-colorspace' allows you to specify what color space the
 ;; dimming calculation is performed in.  In the majority of cases you
 ;; won't need to touch this setting.  See the docstring below for more
 ;; information.
@@ -222,6 +229,12 @@ company-box pops up a list of completion."
    'dimmer-exclusion-regexp-list "^ \\*LV\\*$"))
 
 ;;;###autoload
+(defun dimmer-configure-org ()
+  "Convenience settings for org users."
+  (add-to-list 'dimmer-exclusion-regexp-list "^\\*Org Select\\*$")
+  (add-to-list 'dimmer-exclusion-regexp-list "^ \\*Agenda Commands\\*$"))
+
+;;;###autoload
 (defun dimmer-configure-posframe ()
   "Convenience settings for packages depending on posframe.
 
@@ -241,12 +254,6 @@ in some cases you can customize the other package and ensure it
 uses a buffer name that fits this pattern."
   (add-to-list
    'dimmer-exclusion-regexp-list "^ \\*.*posframe.*buffer.*\\*$"))
-
-;;;###autoload
-(defun dimmer-configure-org ()
-  "Convenience settings for org users."
-  (add-to-list 'dimmer-exclusion-regexp-list "^\\*Org Select\\*$")
-  (add-to-list 'dimmer-exclusion-regexp-list "^ \\*Agenda Commands\\*$"))
 
 ;;;###autoload
 (defun dimmer-configure-which-key ()

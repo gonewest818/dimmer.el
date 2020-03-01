@@ -36,17 +36,24 @@ By default dimmer excludes the minibuffer and echo areas from
 consideration, so that most packages that use the minibuffer for
 interaction will behave as users expect.
 
-* `dimmer-configure-helm` is a convenience function for helm users that
-further modifies the customizations so helm buffers are not dimmed.
+* `dimmer-configure-company-box` is a convenience function for users
+of company-box.  It prevents dimming the buffer you are editing when a
+company-box popup is displayed.
+
+* `dimmer-configure-helm` is a convenience function for helm users to
+ensure helm buffers are not dimmed.
 
 * `dimmer-configure-hydra` is a convenience function for hydra users
-that modifies the customizations so "*LV*" buffers are not dimmed.
+to ensure ` *LV*` buffers are not dimmed.
 
-* `dimmer-configure-org` is a convenience function for org users that
-modifies the customizations so org-mode buffers are not dimmed.
+* `dimmer-configure-org` is a convenience function for org users to
+ensure org-mode buffers are not dimmed.
+
+* `dimmer-configure-posframe` is a convenience function for posframe
+users to ensure posframe buffers are not dimmed.
 
 * `dimmer-configure-which-key` is a convenience function for which-key
-users that modifies the customizations so which-key popups are not dimmed.
+users to ensure which-key popups are not dimmed.
 
 Please submit pull requests with configurations for other packages!
 
