@@ -6,15 +6,20 @@ Going forward, please make sure pull requests include a changelog
 entry in this file. Include a concise description of the feature and
 refer to the issue number that was resolved.
 
-## Snapshot (on melpa.org)
+## Latest snapshot (on melpa.org)
+- TBD
+
+## 0.4.2 (on stable.melpa.org)
 
 - Features
   - Added `dimmer-buffer-exclusion-predicates` as another mechanism to
-    specify buffers that can't be dimmed, resolving [#25].
+    specify when dimming state should not change, resolving [#25].
   - Renamed `dimmer-exclusion-regexp-list` to
     `dimmer-buffer-exclusion-regexps` to clarify what this setting
     does.
   - Added `dimmer-configure-org` [#32]
+  - Added `dimmer-configure-company-box` [#37]
+  - Added `dimmer-configure-posframe` [#36]
   - Expanded the part of the documentation that describes what the
     "dimming" calculation really does. [#31]
 - Bugfixes
@@ -28,7 +33,7 @@ refer to the issue number that was resolved.
   - Added Emacs 27 to the CI test matrix.
   - Update build steps to download ELPA's new gnupg signing key explicitly.
 
-## 0.4.1 (stable.melpa.org)
+## 0.4.1
 
 - Features
   - Added the ability to change the background color, the foreground
