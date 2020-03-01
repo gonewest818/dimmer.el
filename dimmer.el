@@ -197,6 +197,7 @@ wrong, then try HSL or RGB instead."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; configuration
 
+;;;###autoload
 (defun dimmer-configure-company-box ()
   "Convenience setting for company-box users.
 This predicate prevents dimming the buffer you are editing when
@@ -205,6 +206,7 @@ company-box pops up a list of completion."
    'dimmer-prevent-dimming-predicates
    (lambda () (string-prefix-p " *company-box-" (buffer-name)))))
 
+;;;###autoload
 (defun dimmer-configure-helm ()
   "Convenience settings for helm users."
   (with-no-warnings
@@ -213,11 +215,13 @@ company-box pops up a list of completion."
     (add-to-list
      'dimmer-prevent-dimming-predicates #'helm--alive-p)))
 
+;;;###autoload
 (defun dimmer-configure-hydra ()
   "Convenience settings for hydra users."
   (add-to-list
    'dimmer-exclusion-regexp-list "^ \\*LV\\*$"))
 
+;;;###autoload
 (defun dimmer-configure-posframe ()
   "Convenience settings for packages depending on posframe.
 
@@ -238,11 +242,13 @@ uses a buffer name that fits this pattern."
   (add-to-list
    'dimmer-exclusion-regexp-list "^ \\*.*posframe.*buffer.*\\*$"))
 
+;;;###autoload
 (defun dimmer-configure-org ()
   "Convenience settings for org users."
   (add-to-list 'dimmer-exclusion-regexp-list "^\\*Org Select\\*$")
   (add-to-list 'dimmer-exclusion-regexp-list "^ \\*Agenda Commands\\*$"))
 
+;;;###autoload
 (defun dimmer-configure-which-key ()
   "Convenience settings for which-key-users."
   (with-no-warnings
