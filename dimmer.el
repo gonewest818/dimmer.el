@@ -59,8 +59,8 @@
 ;; `dimmer-configure-hydra' is a convenience function for hydra users to
 ;; ensure  "*LV*" buffers are not dimmed.
 ;;
-;; `dimmer-configure-magit' is a convenience function for magit users to ensure
-;; transients are not dimmed.
+;; `dimmer-configure-magit' is a convenience function for magit users to
+;; ensure transients are not dimmed.
 ;;
 ;; `dimmer-configure-org' is a convenience function for org users to
 ;; ensure org-mode buffers are not dimmed.
@@ -232,6 +232,12 @@ company-box pops up a list of completion."
    'dimmer-exclusion-regexp-list "^ \\*LV\\*$"))
 
 ;;;###autoload
+(defun dimmer-configure-magit ()
+  "Convenience settings for magit users."
+  (add-to-list
+   'dimmer-exclusion-regexp-list "^ \\*transient\\*$"))
+
+;;;###autoload
 (defun dimmer-configure-org ()
   "Convenience settings for org users."
   (add-to-list 'dimmer-exclusion-regexp-list "^\\*Org Select\\*$")
@@ -266,12 +272,6 @@ uses a buffer name that fits this pattern."
      'dimmer-exclusion-regexp-list "^ \\*which-key\\*$")
     (add-to-list
      'dimmer-prevent-dimming-predicates #'which-key--popup-showing-p)))
-
-;;;###autoload
-(defun dimmer-configure-magit ()
-  "Convenience settings for magit users."
-    (add-to-list
-     'dimmer-exclusion-regexp-list "^ \\*transient\\*$"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; implementation

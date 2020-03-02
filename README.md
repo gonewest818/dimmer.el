@@ -56,7 +56,7 @@ ensure org-mode buffers are not dimmed.
 users to ensure posframe buffers are not dimmed.
 
 * `dimmer-configure-which-key` is a convenience function for which-key
-users that modifies the customizations so which-key popups are not dimmed.
+users to ensure which-key popups are not dimmed.
 
 Please submit pull requests with configurations for other packages!
 
