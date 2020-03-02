@@ -46,14 +46,17 @@ ensure helm buffers are not dimmed.
 * `dimmer-configure-hydra` is a convenience function for hydra users
 to ensure ` *LV*` buffers are not dimmed.
 
+* `dimmer-configure-magit` a convenience function for magit users to
+ensure transients are not dimmed.
+
 * `dimmer-configure-org` is a convenience function for org users to
 ensure org-mode buffers are not dimmed.
 
 * `dimmer-configure-posframe` is a convenience function for posframe
 users to ensure posframe buffers are not dimmed.
 
-* `dimmer-configure-magitis a convenience function for magit users to
-ensure transients are not dimmed.
+* `dimmer-configure-which-key` is a convenience function for which-key
+users that modifies the customizations so which-key popups are not dimmed.
 
 Please submit pull requests with configurations for other packages!
 
