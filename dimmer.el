@@ -270,9 +270,8 @@ uses a buffer name that fits this pattern."
 ;;;###autoload
 (defun dimmer-configure-magit ()
   "Convenience settings for magit users."
-  (with-no-warnings
     (add-to-list
-     'dimmer-exclusion-regexp-list "^ \\*transient\\*$")))
+     'dimmer-exclusion-regexp-list "^ \\*transient\\*$"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; implementation
