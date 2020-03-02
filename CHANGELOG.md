@@ -7,7 +7,8 @@ entry in this file. Include a concise description of the feature and
 refer to the issue number that was resolved.
 
 ## Latest snapshot (on melpa.org)
-- TBD
+- Features
+  - Added `dimmer-configure-magit`
 
 ## 0.4.2 (on stable.melpa.org)
 
