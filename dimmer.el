@@ -68,6 +68,9 @@
 ;; `dimmer-configure-which-key' is a convenience function for which-key
 ;; users to ensure which-key popups are not dimmed.
 ;;
+;; `dimmer-configure-magit' is a convenience function for magit users to ensure
+;; transients are not dimmed.
+;;
 ;; Please submit pull requests with configurations for other packages!
 ;;
 ;; Customization:
@@ -263,6 +266,13 @@ uses a buffer name that fits this pattern."
      'dimmer-exclusion-regexp-list "^ \\*which-key\\*$")
     (add-to-list
      'dimmer-prevent-dimming-predicates #'which-key--popup-showing-p)))
+
+;;;###autoload
+(defun dimmer-configure-magit ()
+  "Convenience settings for magit users."
+  (with-no-warnings
+    (add-to-list
+     'dimmer-exclusion-regexp-list "^ \\*transient\\*$")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; implementation
