@@ -8,6 +8,7 @@ refer to the issue number that was resolved.
 
 ## Latest snapshot (on melpa.org)
 - Features
+  - Added `dimmer-configure-gnus`
   - Added `dimmer-configure-magit`
 
 ## 0.4.2 (on stable.melpa.org)

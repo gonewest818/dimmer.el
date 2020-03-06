@@ -40,6 +40,9 @@ interaction will behave as users expect.
 of company-box.  It prevents dimming the buffer you are editing when a
 company-box popup is displayed.
 
+* `dimmer-configure-gnus` is a convenience function for gnus users to
+ensure article buffers are not dimmed.
+
 * `dimmer-configure-helm` is a convenience function for helm users to
 ensure helm buffers are not dimmed.
 

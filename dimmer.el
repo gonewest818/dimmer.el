@@ -56,6 +56,9 @@
 ;; `dimmer-configure-helm' is a convenience function for helm users to
 ;; ensure helm buffers are not dimmed.
 ;;
+;; `dimmer-configure-gnus' is a convenience function for gnus users to
+;; ensure article buffers are not dimmed.
+;;
 ;; `dimmer-configure-hydra' is a convenience function for hydra users to
 ;; ensure  "*LV*" buffers are not dimmed.
 ;;
@@ -224,6 +227,12 @@ company-box pops up a list of completion."
      'dimmer-exclusion-regexp-list "^\\*[h|H]elm.*\\*$")
     (add-to-list
      'dimmer-prevent-dimming-predicates #'helm--alive-p)))
+
+;;;###autoload
+(defun dimmer-configure-gnus ()
+  "Convenience settings for gnus users."
+  (add-to-list
+   'dimmer-exclusion-regexp-list "^\\*Article .*\\*$"))
 
 ;;;###autoload
 (defun dimmer-configure-hydra ()
