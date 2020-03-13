@@ -23,45 +23,15 @@ background colors, or both.
 
 (click thumbnail for higher quality)
 
+Go [here](https://gonewest818.github.io/2020/03/dimmer-gallery/) to
+see a gallery of dimmer effects based on different customizations.
+
 ## Usage Example
 
      (require 'dimmer)
      (dimmer-configure-which-key)
      (dimmer-configure-helm)
      (dimmer-mode t)
-
-## Configuration
-
-By default dimmer excludes the minibuffer and echo areas from
-consideration, so that most packages that use the minibuffer for
-interaction will behave as users expect.
-
-* `dimmer-configure-company-box` is a convenience function for users
-of company-box.  It prevents dimming the buffer you are editing when a
-company-box popup is displayed.
-
-* `dimmer-configure-gnus` is a convenience function for gnus users to
-ensure article buffers are not dimmed.
-
-* `dimmer-configure-helm` is a convenience function for helm users to
-ensure helm buffers are not dimmed.
-
-* `dimmer-configure-hydra` is a convenience function for hydra users
-to ensure ` *LV*` buffers are not dimmed.
-
-* `dimmer-configure-magit` a convenience function for magit users to
-ensure transients are not dimmed.
-
-* `dimmer-configure-org` is a convenience function for org users to
-ensure org-mode buffers are not dimmed.
-
-* `dimmer-configure-posframe` is a convenience function for posframe
-users to ensure posframe buffers are not dimmed.
-
-* `dimmer-configure-which-key` is a convenience function for which-key
-users to ensure which-key popups are not dimmed.
-
-Please submit pull requests with configurations for other packages!
 
 ## Customization
 
@@ -103,6 +73,39 @@ doesn't have focus.
 dimming calculation is performed in. In the majority of cases you
 won't need to touch this setting. See Troubleshooting below ("dimmed
 colors look wrong") for an example where you might need to set this.
+
+## Configuration
+
+By default dimmer excludes the minibuffer and echo areas from
+consideration, so that most packages that use the minibuffer for
+interaction will behave as users expect.
+
+* `dimmer-configure-company-box` is a convenience function for users
+of company-box.  It prevents dimming the buffer you are editing when a
+company-box popup is displayed.
+
+* `dimmer-configure-gnus` is a convenience function for gnus users to
+ensure article buffers are not dimmed.
+
+* `dimmer-configure-helm` is a convenience function for helm users to
+ensure helm buffers are not dimmed.
+
+* `dimmer-configure-hydra` is a convenience function for hydra users
+to ensure ` *LV*` buffers are not dimmed.
+
+* `dimmer-configure-magit` a convenience function for magit users to
+ensure transients are not dimmed.
+
+* `dimmer-configure-org` is a convenience function for org users to
+ensure org-mode buffers are not dimmed.
+
+* `dimmer-configure-posframe` is a convenience function for posframe
+users to ensure posframe buffers are not dimmed.
+
+* `dimmer-configure-which-key` is a convenience function for which-key
+users to ensure which-key popups are not dimmed.
+
+Please submit pull requests with configurations for other packages!
 
 ## How colors are adjusted
 
