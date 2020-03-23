@@ -478,17 +478,25 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
     (dimmer--dbg 3 "dimmer-filtered-buffer-list: %s" buffers)
     buffers))
 
-(defun dimmer-process-all ()
-  "Process all buffers and dim or un-dim each."
+(defun dimmer-process-all (&optional force)
+  "Process all buffers and dim or un-dim each.
+
+When FORCE is true some special logic applies.  Namely, we must
+process all buffers regardless of the various dimming predicates.
+While performing this scan, any buffer that would have been
+excluded due to the predicates before should be un-dimmed now."
   (dimmer--dbg-buffers 1 "dimmer-process-all")
   (let ((selected (current-buffer))
         (ignore (cl-some (lambda (f) (and (fboundp f) (funcall f)))
-                         dimmer-prevent-dimming-predicates)))
+                         dimmer-prevent-dimming-predicates))
+        (filtbufs (dimmer-filtered-buffer-list)))
+    (dimmer--dbg 1 "dimmer-process-all: force %s" force)
     (setq dimmer-last-buffer selected)
-    (unless ignore
-      (dolist (buf (dimmer-filtered-buffer-list))
+    (when (or force (not ignore))
+      (dolist (buf (if force (buffer-list) filtbufs))
         (dimmer--dbg 2 "dimmer-process-all: buf %s" buf)
-        (if (eq buf selected)
+        (if (or (eq buf selected)
+                (and force (not (memq buf filtbufs))))
             (dimmer-restore-buffer buf)
           (dimmer-dim-buffer buf dimmer-fraction))))))
 
@@ -513,7 +521,7 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
 (defun dimmer-config-change-handler ()
   "Process all buffers if window configuration has changed."
   (dimmer--dbg-buffers 1 "dimmer-config-change-handler")
-  (dimmer-process-all))
+  (dimmer-process-all t))
 
 (defun dimmer-after-focus-change-handler ()
   "Handle cases where a frame may have gained or last focus.
@@ -527,7 +535,7 @@ focus then dim the others.  Used in Emacs >= 27.0 only."
         (setq focus-out (and focus-out (not (frame-focus-state f))))))
     (if focus-out
         (dimmer-dim-all)
-      (dimmer-process-all))))
+      (dimmer-process-all t))))
 
 (defun dimmer-manage-frame-focus-hooks (install)
   "Manage the frame focus in/out hooks for dimmer.

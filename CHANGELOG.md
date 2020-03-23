@@ -10,6 +10,8 @@ refer to the issue number that was resolved.
 - Features
   - Added `dimmer-configure-gnus`
   - Added `dimmer-configure-magit`
+  - Correctly un-dim buffers when Emacs gains focus [#43]
+  - Created screenshot gallery
 
 ## 0.4.2 (on stable.melpa.org)
 
