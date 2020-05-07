@@ -4,14 +4,18 @@ Contributor note:
 
 Going forward, please make sure pull requests include a changelog
 entry in this file. Include a concise description of the feature and
-refer to the issue number that was resolved.
+refer to the issue number you resolved.
 
 ## Latest snapshot (on melpa.org)
 - Features
   - Added `dimmer-configure-gnus`
   - Added `dimmer-configure-magit`
+- Bugfixes
   - Correctly un-dim buffers when Emacs gains focus [#43]
-  - Created screenshot gallery
+  - Fix performance regression when changing focus with many buffers
+    open [introduced in #43, fixed #45]
+- Documentation
+  - New [screenshot gallery](https://gonewest818.github.io/2020/03/dimmer-gallery/)
 
 ## 0.4.2 (on stable.melpa.org)
 
