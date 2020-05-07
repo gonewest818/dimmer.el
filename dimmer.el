@@ -460,21 +460,34 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
     (dimmer--dbg 2 "dimmer-restore-buffer: AFTER '%s' (%s)" buf
                  (alist-get 'default face-remapping-alist))))
 
-(defun dimmer-filtered-buffer-list ()
-  "Get filtered subset of all visible buffers in all frames."
+(defun dimmer-visible-buffer-list ()
+  "Get all visible buffers in all frames."
   (let (buffers)
     (walk-windows
      (lambda (win)
-       (let* ((buf (window-buffer win))
-              (name (buffer-name buf)))
-         (unless (or (member buf buffers)
-                     (cl-some (lambda (rxp) (string-match-p rxp name))
-                              dimmer-buffer-exclusion-regexps)
-                     (cl-some (lambda (f) (funcall f buf))
-                              dimmer-buffer-exclusion-predicates))
+       (let ((buf (window-buffer win)))
+         (unless (member buf buffers)   ; ensure items are unique
            (push buf buffers))))
      nil
      t)
+    (dimmer--dbg 3 "dimmer-visible-buffer-list: %s" buffers)
+    buffers))
+
+(defun dimmer-filtered-buffer-list (&optional buffer-list)
+  "Get filtered subset of all visible buffers in all frames.
+If BUFFER-LIST is provided by the caller, then filter that list."
+  (let ((buffers
+         (seq-filter
+          (lambda (buf)
+            ;; This filter function REMOVES any buffer if:
+            ;;    (a) one of the dimmer-buffer-exclusion-regexps matches
+            ;; OR (b) one of the dimmer-buffer-exclusion-predicates is true
+            (let ((name (buffer-name buf)))
+              (not (or (cl-some (lambda (rxp) (string-match-p rxp name))
+                                dimmer-buffer-exclusion-regexps)
+                       (cl-some (lambda (f) (funcall f buf))
+                                dimmer-buffer-exclusion-predicates)))))
+          (or buffer-list (dimmer-visible-buffer-list)))))
     (dimmer--dbg 3 "dimmer-filtered-buffer-list: %s" buffers)
     buffers))
 
@@ -486,14 +499,15 @@ process all buffers regardless of the various dimming predicates.
 While performing this scan, any buffer that would have been
 excluded due to the predicates before should be un-dimmed now."
   (dimmer--dbg-buffers 1 "dimmer-process-all")
-  (let ((selected (current-buffer))
-        (ignore (cl-some (lambda (f) (and (fboundp f) (funcall f)))
-                         dimmer-prevent-dimming-predicates))
-        (filtbufs (dimmer-filtered-buffer-list)))
+  (let* ((selected (current-buffer))
+         (ignore   (cl-some (lambda (f) (and (fboundp f) (funcall f)))
+                            dimmer-prevent-dimming-predicates))
+         (visbufs  (dimmer-visible-buffer-list))
+         (filtbufs (dimmer-filtered-buffer-list visbufs)))
     (dimmer--dbg 1 "dimmer-process-all: force %s" force)
     (setq dimmer-last-buffer selected)
     (when (or force (not ignore))
-      (dolist (buf (if force (buffer-list) filtbufs))
+      (dolist (buf (if force visbufs filtbufs))
         (dimmer--dbg 2 "dimmer-process-all: buf %s" buf)
         (if (or (eq buf selected)
                 (and force (not (memq buf filtbufs))))
@@ -505,7 +519,7 @@ excluded due to the predicates before should be un-dimmed now."
   (dimmer--dbg-buffers 1 "dimmer-dim-all")
   (mapc (lambda (buf)
           (dimmer-dim-buffer buf dimmer-fraction))
-        (buffer-list)))
+        (dimmer-visible-buffer-list)))
 
 (defun dimmer-restore-all ()
   "Un-dim all buffers."
