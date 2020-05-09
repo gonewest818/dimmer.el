@@ -11,9 +11,14 @@ refer to the issue number you resolved.
   - Added `dimmer-configure-gnus`
   - Added `dimmer-configure-magit`
 - Bugfixes
-  - Correctly un-dim buffers when Emacs gains focus [#43]
+  - Correctly un-dim buffers when Emacs gains focus
+    [#43](https://github.com/gonewest818/dimmer.el/issues/43)
   - Fix performance regression when changing focus with many buffers
-    open [introduced in #43, fixed #45]
+    open [introduced in #43, fixed
+    [#45](https://github.com/gonewest818/dimmer.el/issues/45)]
+  - Fix "Lisp error: (wrong-type-argument ...)" when using
+    `dimmer-configure-company-box`
+    [#44](https://github.com/gonewest818/dimmer.el/issues/44)
 - Documentation
   - New [screenshot gallery](https://gonewest818.github.io/2020/03/dimmer-gallery/)
 

@@ -210,14 +210,17 @@ wrong, then try HSL or RGB instead."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; configuration
 
+(defun dimmer-company-box-p ()
+  "Return non-nil if current buffer is a company box buffer."
+  (string-prefix-p " *company-box-" (buffer-name)))
+
 ;;;###autoload
 (defun dimmer-configure-company-box ()
   "Convenience setting for company-box users.
 This predicate prevents dimming the buffer you are editing when
 company-box pops up a list of completion."
   (add-to-list
-   'dimmer-prevent-dimming-predicates
-   (lambda () (string-prefix-p " *company-box-" (buffer-name)))))
+   'dimmer-prevent-dimming-predicates #'dimmer-company-box-p))
 
 ;;;###autoload
 (defun dimmer-configure-helm ()
