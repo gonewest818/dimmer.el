@@ -584,7 +584,7 @@ when `dimmer-watch-frame-focus-events` is nil."
   nil
   :lighter ""
   :global t
-  :require 'dimmer
+  :group 'dimmer
   (if dimmer-mode
       (progn
         (dimmer-manage-frame-focus-hooks t)
