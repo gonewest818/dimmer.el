@@ -127,7 +127,7 @@
   :group 'convenience
   :link '(url-link :tag "GitHub" "https://github.com/gonewest818/dimmer.el"))
 
-(define-obsolete-variable-alias 'dimmer-percent 'dimmer-fraction)
+(define-obsolete-variable-alias 'dimmer-percent 'dimmer-fraction "v0.2.1")
 (defcustom dimmer-fraction 0.20
   "Control the degree to which buffers are dimmed (0.0 - 1.0)."
   :type '(float)
@@ -149,7 +149,7 @@ See documentation for details."
  "v0.4.0")
 
 (define-obsolete-variable-alias
-  'dimmer-exclusion-regexp-list 'dimmer-buffer-exclusion-regexps)
+  'dimmer-exclusion-regexp-list 'dimmer-buffer-exclusion-regexps "v0.4.1")
 (defcustom dimmer-buffer-exclusion-regexps '("^ \\*Minibuf-[0-9]+\\*$"
                                              "^ \\*Echo.*\\*$")
   "List of regular expressions describing buffer names that are never dimmed."
@@ -166,7 +166,7 @@ the buffer is not dimmed."
   :group 'dimmer)
 
 (define-obsolete-variable-alias
-  'dimmer-exclusion-predicates 'dimmer-prevent-dimming-predicates)
+  'dimmer-exclusion-predicates 'dimmer-prevent-dimming-predicates "v0.3.0")
 (defcustom dimmer-prevent-dimming-predicates '(window-minibuffer-p)
   "List of functions which prevent dimmer from altering dimmed buffer set.
 
@@ -598,7 +598,7 @@ when `dimmer-watch-frame-focus-events` is nil."
     (dimmer-restore-all)))
 
 ;;;###autoload
-(define-obsolete-function-alias 'dimmer-activate 'dimmer-mode)
+(define-obsolete-function-alias 'dimmer-activate 'dimmer-mode "v.0.0.0")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; debugging - call from *scratch*, ielm, or eshell
