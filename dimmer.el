@@ -277,7 +277,9 @@ of adding another regular expression to catch more things, or
 in some cases you can customize the other package and ensure it
 uses a buffer name that fits this pattern."
   (add-to-list
-   'dimmer-buffer-exclusion-regexps "^ \\*.*posframe.*buffer.*\\*$"))
+   'dimmer-buffer-exclusion-regexps "^ \\*.*posframe.*buffer.*\\*$")
+  (add-to-list
+   'dimmer-buffer-exclusion-regexps "^ \\*frog-menu-menu\\*$"))
 
 ;;;###autoload
 (defun dimmer-configure-which-key ()

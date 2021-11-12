@@ -9,7 +9,7 @@ refer to the issue number you resolved.
 ## Latest snapshot (on melpa.org)
 
 - Features
-  - N/A
+  - Add frog-menu buffer regexps to `dimmer-configure-posframe`
 - Bugfixes
   - Handle `reset` face-attribute gracefully, resolving [#68, #69]
 - Development and CI improvements
