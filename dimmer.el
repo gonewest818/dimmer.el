@@ -181,7 +181,7 @@ of dimmed buffers."
 
 Restart Emacs after changing this configuration.
 When configuring dimmer in your init scripts, pleae be sure to
-change this setting before activating dimmer-mode."
+change this setting before calling the function `dimmer-mode'."
   :type '(boolean)
   :group 'dimmer)
 
