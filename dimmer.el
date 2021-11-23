@@ -583,8 +583,8 @@ when `dimmer-watch-frame-focus-events` is nil."
 
 ;;;###autoload
 (define-minor-mode dimmer-mode
-  "visually highlight the selected buffer"
-  nil
+  "Visually highlight the selected buffer."
+  :init-value nil
   :lighter ""
   :global t
   :group 'dimmer
