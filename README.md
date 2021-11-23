@@ -178,7 +178,7 @@ customization screens for more background on this issue.
 
 ## License
 
-Copyright (C) 2017-2020 Neil Okamoto
+Copyright (C) 2017-2021 Neil Okamoto
 
 Distributed under the GNU General Public License, Version 3
 
