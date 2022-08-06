@@ -180,7 +180,7 @@ of dimmed buffers."
   "Should windows be dimmed when all Emacs frame(s) lose focus?
 
 Restart Emacs after changing this configuration.
-When configuring dimmer in your init scripts, pleae be sure to
+When configuring dimmer in your init scripts, please be sure to
 change this setting before calling the function `dimmer-mode'."
   :type '(boolean)
   :group 'dimmer)
