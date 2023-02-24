@@ -607,21 +607,21 @@ when `dimmer-watch-frame-focus-events` is nil."
 ;;; debugging - call from *scratch*, ielm, or eshell
 
 (defun dimmer--debug-face-remapping-alist (name &optional clear)
-  "Display 'face-remapping-alist' for buffer NAME (or clear if CLEAR)."
+  "Display `face-remapping-alist' for buffer NAME (or clear if CLEAR)."
   (with-current-buffer name
     (if clear
         (setq face-remapping-alist nil)
       face-remapping-alist)))
 
 (defun dimmer--debug-buffer-face-remaps (name &optional clear)
-  "Display 'dimmer-buffer-face-remaps' for buffer NAME (or clear if CLEAR)."
+  "Display `dimmer-buffer-face-remaps' for buffer NAME (or clear if CLEAR)."
   (with-current-buffer name
     (if clear
         (setq dimmer-buffer-face-remaps nil)
       dimmer-buffer-face-remaps)))
 
 (defun dimmer--debug-reset (name)
-  "Clear 'face-remapping-alist' and 'dimmer-buffer-face-remaps' for NAME."
+  "Clear `face-remapping-alist' and `dimmer-buffer-face-remaps' for NAME."
   (dimmer--debug-face-remapping-alist name t)
   (dimmer--debug-buffer-face-remaps name t)
   (redraw-display))
