@@ -1,34 +1,20 @@
 export EMACS ?= emacs
-export BATCH = --batch -q -l .emacs/init.el
+export EASK := $(shell command -v eask 2>/dev/null)
 
-ELS = $(wildcard *.el)
-LINT_ELS = $(filter-out dimmer.el-autoloads.el,$(ELS))
-OBJECTS = $(ELS:.el=.elc)
+.PHONY: lint compile test install-deps clean
 
-.PHONY: version lint clean cleanelpa
+lint:
+	$(EASK) lint checkdoc && $(EASK) lint package && $(EASK) lint declare && $(EASK) lint indent && $(EASK) lint elisp-lint
 
-.elpa:
-	mkdir -p .emacs/elpa/gnupg && \
-	chmod 700 .emacs/elpa/gnupg && \
-	echo "disable-ipv6" > .emacs/elpa/gnupg/dirmngr.conf && \
-	for i in {1..3}; do \
-	gpg --keyserver keyserver.ubuntu.com \
-	    --homedir .emacs/elpa/gnupg \
-	    --recv-keys 066DAFCB81E42C40 \
-	    && break || sleep 15; \
-	done
-	$(EMACS) $(BATCH)
-	touch .elpa
+compile:
+	$(EASK) compile
 
-version: .elpa
-	$(EMACS) $(BATCH) --version
+test: compile
+	$(EASK) test
 
-# TODO: re-enable package-lint after handling "frame-focus-state" error
-lint: .elpa
-	$(EMACS) $(BATCH) -f elisp-lint-files-batch --no-package-lint $(LINT_ELS)
+install-deps:
+	$(EASK) install-deps --dev
 
 clean:
-	rm -f $(OBJECTS) dimmer.el-autoloads.el *~
-
-cleanall: clean
-	rm -rf .emacs/elpa .emacs/quelpa .emacs/.emacs-custom.el .elpa
+	$(EASK) clean elc
+	rm -f dimmer.el-autoloads.el *~
