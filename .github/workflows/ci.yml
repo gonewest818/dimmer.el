@@ -54,3 +54,6 @@ jobs:
 
       - name: Byte-compile
         run: eask compile
+
+      - name: Test
+        run: eask test ert test/*-test.el

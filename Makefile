@@ -10,6 +10,7 @@ compile:
 	$(EASK) compile
 
 test: compile
+	$(EASK) test ert test/*-test.el
 
 install-deps:
 	$(EASK) install-deps --dev
