@@ -4,7 +4,7 @@ Visually highlight the selected buffer.
 
 [![MELPA Stable](https://stable.melpa.org/packages/dimmer-badge.svg)](https://stable.melpa.org/#/dimmer)
 [![MELPA](https://melpa.org/packages/dimmer-badge.svg)](https://melpa.org/#/dimmer)
-[![CircleCI](https://img.shields.io/circleci/project/github/gonewest818/dimmer.el.svg)](https://circleci.com/gh/gonewest818/dimmer.el)
+[![CI](https://github.com/gonewest818/dimmer.el/actions/workflows/ci.yml/badge.svg)](https://github.com/gonewest818/dimmer.el/actions/workflows/ci.yml)
 
 ## Description
 
@@ -107,6 +107,21 @@ users to ensure which-key popups are not dimmed.
 
 Please submit pull requests with configurations for other packages!
 
+## Development
+
+This project now uses Eask and GitHub Actions.
+
+Common commands:
+
+* `make lint` runs the lint suite (`eask lint checkdoc`, `eask lint package`, `eask lint declare`, `eask lint indent`, `eask lint elisp-lint`)
+* `make compile` byte-compiles the package
+* `make test` currently aliases `make compile` because there is no test suite yet
+* `make install-deps` installs dev dependencies into `.eask/`
+
+If you prefer, you can run the underlying Eask commands directly.
+
+The CI matrix runs on Emacs 27.2, 28.2, 29.4, 30.2, and snapshot.
+
 ## How colors are adjusted
 
 This package chooses a "dimmed" version of the foreground (and/or the
@@ -178,7 +193,6 @@ customization screens for more background on this issue.
 
 ## License
 
-Copyright (C) 2017-2021 Neil Okamoto
+Copyright (C) 2017-2026 Neil Okamoto
 
 Distributed under the GNU General Public License, Version 3
-
