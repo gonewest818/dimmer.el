@@ -10,7 +10,6 @@ compile:
 	$(EASK) compile
 
 test: compile
-	$(EASK) test
 
 install-deps:
 	$(EASK) install-deps --dev

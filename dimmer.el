@@ -1,11 +1,11 @@
-;;; dimmer.el --- Visually highlight the selected buffer
+;;; dimmer.el --- Visually highlight the selected buffer -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017-2021 Neil Okamoto
 
 ;; Filename: dimmer.el
 ;; Author: Neil Okamoto
 ;; Version: 0.4.2
-;; Package-Requires: ((emacs "25.1"))
+;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://github.com/gonewest818/dimmer.el
 ;; Keywords: faces, editing
 ;;
@@ -230,33 +230,33 @@ company-box pops up a list of completion."
   "Convenience settings for helm users."
   (with-no-warnings
     (add-to-list
-     'dimmer-exclusion-regexp-list "^\\*[h|H]elm.*\\*$")
-    (add-to-list
-     'dimmer-prevent-dimming-predicates #'helm--alive-p)))
+     'dimmer-buffer-exclusion-regexps "^\\*[hH]elm.*\\*$")
+    (when (fboundp 'helm--alive-p)
+      (add-to-list 'dimmer-prevent-dimming-predicates #'helm--alive-p))))
 
 ;;;###autoload
 (defun dimmer-configure-gnus ()
   "Convenience settings for gnus users."
   (add-to-list
-   'dimmer-exclusion-regexp-list "^\\*Article .*\\*$"))
+   'dimmer-buffer-exclusion-regexps "^\\*Article .*\\*$"))
 
 ;;;###autoload
 (defun dimmer-configure-hydra ()
   "Convenience settings for hydra users."
   (add-to-list
-   'dimmer-exclusion-regexp-list "^ \\*LV\\*$"))
+   'dimmer-buffer-exclusion-regexps "^ \\*LV\\*$"))
 
 ;;;###autoload
 (defun dimmer-configure-magit ()
   "Convenience settings for magit users."
   (add-to-list
-   'dimmer-exclusion-regexp-list "^ \\*transient\\*$"))
+   'dimmer-buffer-exclusion-regexps "^ \\*transient\\*$"))
 
 ;;;###autoload
 (defun dimmer-configure-org ()
   "Convenience settings for org users."
-  (add-to-list 'dimmer-exclusion-regexp-list "^\\*Org Select\\*$")
-  (add-to-list 'dimmer-exclusion-regexp-list "^ \\*Agenda Commands\\*$"))
+  (add-to-list 'dimmer-buffer-exclusion-regexps "^\\*Org Select\\*$")
+  (add-to-list 'dimmer-buffer-exclusion-regexps "^ \\*Agenda Commands\\*$"))
 
 ;;;###autoload
 (defun dimmer-configure-posframe ()
@@ -277,16 +277,17 @@ of adding another regular expression to catch more things, or
 in some cases you can customize the other package and ensure it
 uses a buffer name that fits this pattern."
   (add-to-list
-   'dimmer-exclusion-regexp-list "^ \\*.*posframe.*buffer.*\\*$"))
+   'dimmer-buffer-exclusion-regexps "^ \\*.*posframe.*buffer.*\\*$"))
 
 ;;;###autoload
 (defun dimmer-configure-which-key ()
   "Convenience settings for which-key-users."
   (with-no-warnings
     (add-to-list
-     'dimmer-exclusion-regexp-list "^ \\*which-key\\*$")
-    (add-to-list
-     'dimmer-prevent-dimming-predicates #'which-key--popup-showing-p)))
+     'dimmer-buffer-exclusion-regexps "^ \\*which-key\\*$")
+    (when (fboundp 'which-key--popup-showing-p)
+      (add-to-list
+       'dimmer-prevent-dimming-predicates #'which-key--popup-showing-p))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; implementation
@@ -372,12 +373,12 @@ with a symbol, :rgb, :hsl, or :cielab."
   "Lookup a \"dimmed\" color value from cache, else compute a value.
 This is essentially a memoization of `dimmer-compute-rgb` via a hash
 using the arguments C0, C1, FRAC, and COLORSPACE as the key."
-  (let ((key (format "%s-%s-%f-%s" c0 c1 frac dimmer-use-colorspace)))
+  (let ((key (format "%s-%s-%f-%s" c0 c1 frac colorspace)))
     (or (gethash key dimmer-dimmed-faces)
         (let ((rgb (dimmer-compute-rgb (color-name-to-rgb c0)
                                        (color-name-to-rgb c1)
                                        frac
-                                       dimmer-use-colorspace)))
+                                       colorspace)))
           (when rgb
             (puthash key rgb dimmer-dimmed-faces)
             rgb)))))
@@ -547,12 +548,11 @@ excluded due to the predicates before should be un-dimmed now."
   "Handle cases where a frame may have gained or last focus.
 Walk the `frame-list` and check the state of each one.  If none
 of the frames has focus then dim them all.  If any frame has
-focus then dim the others.  Used in Emacs >= 27.0 only."
+focus then dim the others.  Used in Emacs >= 27.1 only."
   (dimmer--dbg-buffers 1 "dimmer-after-focus-change-handler")
   (let ((focus-out t))
-    (with-no-warnings
-      (dolist (f (frame-list) focus-out)
-        (setq focus-out (and focus-out (not (frame-focus-state f))))))
+    (dolist (f (frame-list) focus-out)
+      (setq focus-out (and focus-out (not (frame-focus-state f)))))
     (if focus-out
         (dimmer-dim-all)
       (dimmer-process-all t))))
@@ -564,22 +564,12 @@ When INSTALL is t, install the appropriate hooks to catch focus
 events.  Otherwise remove the hooks.  This function has no effect
 when `dimmer-watch-frame-focus-events` is nil."
   (when dimmer-watch-frame-focus-events
-    (if (boundp 'after-focus-change-function)
-        ;; emacs-version >= 27.0
-        (if install
-            (add-function :before
-                          after-focus-change-function
-                          #'dimmer-after-focus-change-handler)
-          (remove-function after-focus-change-function
-                           #'dimmer-after-focus-change-handler))
-      ;; else emacs-version < 27.0
-      (if install
-          (with-no-warnings
-            (add-hook 'focus-in-hook #'dimmer-config-change-handler)
-            (add-hook 'focus-out-hook #'dimmer-dim-all))
-        (with-no-warnings
-          (remove-hook 'focus-in-hook #'dimmer-config-change-handler)
-          (remove-hook 'focus-out-hook #'dimmer-dim-all))))))
+    (if install
+        (add-function :before
+                      after-focus-change-function
+                      #'dimmer-after-focus-change-handler)
+      (remove-function after-focus-change-function
+                       #'dimmer-after-focus-change-handler))))
 
 ;;;###autoload
 (define-minor-mode dimmer-mode
@@ -607,21 +597,21 @@ when `dimmer-watch-frame-focus-events` is nil."
 ;;; debugging - call from *scratch*, ielm, or eshell
 
 (defun dimmer--debug-face-remapping-alist (name &optional clear)
-  "Display 'face-remapping-alist' for buffer NAME (or clear if CLEAR)."
+  "Display `face-remapping-alist' for buffer NAME (or clear if CLEAR)."
   (with-current-buffer name
     (if clear
         (setq face-remapping-alist nil)
       face-remapping-alist)))
 
 (defun dimmer--debug-buffer-face-remaps (name &optional clear)
-  "Display 'dimmer-buffer-face-remaps' for buffer NAME (or clear if CLEAR)."
+  "Display `dimmer-buffer-face-remaps' for buffer NAME (or clear if CLEAR)."
   (with-current-buffer name
     (if clear
         (setq dimmer-buffer-face-remaps nil)
       dimmer-buffer-face-remaps)))
 
 (defun dimmer--debug-reset (name)
-  "Clear 'face-remapping-alist' and 'dimmer-buffer-face-remaps' for NAME."
+  "Clear `face-remapping-alist' and `dimmer-buffer-face-remaps' for NAME."
   (dimmer--debug-face-remapping-alist name t)
   (dimmer--debug-buffer-face-remaps name t)
   (redraw-display))
