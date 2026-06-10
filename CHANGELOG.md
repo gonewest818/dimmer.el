@@ -12,6 +12,7 @@ refer to the issue number you resolved.
   - Add frog-menu buffer regexps to `dimmer-configure-posframe`
 - Bugfixes
   - Handle `reset` face-attribute gracefully, resolving [#68, #69]
+  - Handle faces that error on attribute lookup (e.g. `child-frame-border`), resolving [#53]
 - Development and CI improvements
   - Move to GitHub Actions CI
   - Adopt Eask instead of bespoke dev toolchain

@@ -434,10 +434,20 @@ suitable for use with `face-remap-add-relative`."
 
 (defun dimmer-filtered-face-list ()
   "Return a filtered version of `face-list`.
-Filtering is needed to exclude faces that shouldn't be dimmed."
-  ;; `fringe` is problematic because it is shared for all windows,
-  ;; so for now we just leave it alone.
-  (remove 'fringe (face-list)))
+Excludes specific faces that should not be touched, plus faces that error
+on attribute lookup."
+  (let ((ok-p (lambda (f)
+                (and (not (eq f 'fringe))
+                     (condition-case nil
+                         (prog1 t (face-foreground f))
+                       (error nil)))))
+        result)
+    (dolist (f (face-list))
+      (if (funcall ok-p f)
+          (push f result)
+        (dimmer--dbg 2
+                     "dimmer-filtered-face-list: excluding %s" f)))
+    result))
 
 (defun dimmer-dim-buffer (buf frac)
   "Dim all the faces defined in the buffer BUF.
