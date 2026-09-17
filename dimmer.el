@@ -466,6 +466,8 @@ than using TARGET-COLOR directly."
                  ((and (listp value) (plist-member value :color))
                   (plist-get value :color))
                  (t nil)))
+         (color (if (eq color 'foreground-color)
+                    (face-attribute face :foreground nil t) color))
          (effective-target
           (pcase dimmer-adjustment-mode
             (:desaturate
