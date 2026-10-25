@@ -208,4 +208,41 @@
       (should (listp (plist-get result :underline)))
       (should (stringp (plist-get (plist-get result :underline) :color))))))
 
+;;; symbolic foreground-color underline
+
+(ert-deftest dimmer-face-color/underline-foreground-color-no-error ()
+  "A symbolic :color must not be passed to `color-defined-p' (see #89)."
+  (skip-unless (display-graphic-p))
+  (dolist (mode '(:foreground :both :desaturate :hueshift))
+    (let ((dimmer-adjustment-mode mode)
+          (dimmer-hue-target 0.5)
+          (dimmer-use-colorspace :rgb))
+      (make-face 'dimmer-test-underline-fg-symbol)
+      (set-face-foreground 'dimmer-test-underline-fg-symbol "#ffffff")
+      (set-face-attribute 'dimmer-test-underline-fg-symbol nil
+                          :underline '(:color foreground-color :style double-line))
+      (let ((result (dimmer-face-color 'dimmer-test-underline-fg-symbol 0.3)))
+        (should (listp result))
+        (should (not (plist-get result :underline))))
+      (should (equal (face-attribute 'dimmer-test-underline-fg-symbol
+                                     :underline nil t)
+                     '(:color foreground-color :style double-line))))))
+
+(ert-deftest dimmer-face-color/underline-explicit-color-still-dims ()
+  "An explicit string color is still dimmed and keeps its :style."
+  (skip-unless (display-graphic-p))
+  (let ((dimmer-adjustment-mode :foreground)
+        (dimmer-use-colorspace :rgb))
+    (make-face 'dimmer-test-underline-explicit)
+    (set-face-foreground 'dimmer-test-underline-explicit "#ffffff")
+    (set-face-attribute 'dimmer-test-underline-explicit nil
+                        :underline '(:color "#00ff00" :style double-line))
+    (let ((result (dimmer-face-color 'dimmer-test-underline-explicit 0.3)))
+      (should (listp (plist-get result :underline)))
+      (should (stringp (plist-get (plist-get result :underline) :color)))
+      (should (string-prefix-p "#" (plist-get (plist-get result :underline) :color)))
+      (should-not (equal (plist-get (plist-get result :underline) :color)
+                         "#00ff00"))
+      (should (eq (plist-get (plist-get result :underline) :style) 'double-line)))))
+
 ;;; graphical-test.el ends here
