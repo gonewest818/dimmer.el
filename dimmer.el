@@ -466,9 +466,8 @@ than using TARGET-COLOR directly."
                  ((and (listp value) (plist-member value :color))
                   (plist-get value :color))
                  (t nil)))
-         ;; N.B. The :color property of the :underline face attribute can either
-         ;; have a string or the symbol 'foreground-color, which is the wrong
-         ;; type for color-defined-p
+         ;; Only dim explicit color strings; leave symbolic values such as
+         ;; underline's `foreground-color' for Emacs to resolve.
          (should-dim (and (stringp color) (color-defined-p color)))
          (effective-target
           (pcase dimmer-adjustment-mode
