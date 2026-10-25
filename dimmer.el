@@ -466,19 +466,22 @@ than using TARGET-COLOR directly."
                  ((and (listp value) (plist-member value :color))
                   (plist-get value :color))
                  (t nil)))
+         ;; Only dim explicit color strings; leave symbolic values such as
+         ;; underline's `foreground-color' for Emacs to resolve.
+         (should-dim (and (stringp color) (color-defined-p color)))
          (effective-target
           (pcase dimmer-adjustment-mode
             (:desaturate
-             (if (and color (color-defined-p color))
+             (if should-dim
                  (dimmer--gray-of-same-lightness color)
                target-color))
             (:hueshift
-             (if (and color (color-defined-p color))
+             (if should-dim
                  (dimmer--color-with-target-hue
                   color (dimmer--resolve-hue-target))
                target-color))
             (_ target-color))))
-    (when (and color (color-defined-p color))
+    (when should-dim
       (cond
        ((stringp value)
         (dimmer-cached-compute-rgb color effective-target frac
