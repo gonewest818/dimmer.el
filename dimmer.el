@@ -179,6 +179,7 @@ choices are:
     preserving each attribute's original lightness
   `:hueshift' — shift all color-bearing face attributes toward a target hue,
     preserving each attribute's original saturation and lightness
+  `:shade' - shade all color-bearing face attributes toward a target color.
 
 alternatively, you can set this value to a function, and dimmer will use that
 function for adjusting colors. the function should accept 4 arguments
@@ -196,6 +197,7 @@ FACE. if it returns nil, then color adjustment will be skipped."
   :type '(radio (const :tag "colors are dimmed" :dim)
                 (const :tag "Desaturate toward gray" :desaturate)
                 (const :tag "Shift toward target hue" :hueshift)
+                (const :tag "Shade with a target color" :shade)
                 (function))
   :group 'dimmer)
 
@@ -290,6 +292,13 @@ toward this hue.  The following values are accepted:
   :type '(choice (const :tag "Use default background hue" :background)
                  (const :tag "Use default foreground hue" :foreground)
                  (float :tag "Specific hue (0.0–1.0)"))
+  :group 'dimmer)
+
+(defcustom dimmer-shade-target "black"
+  "Target color for the `:shade' adjustment method.
+When `dimmer-adjustment-method' is `:shade', dimmed colors are shaded with this
+color."
+  :type '(color)
   :group 'dimmer)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -540,6 +549,14 @@ For use with `dimmer-adjustment-method'."
                              frac
                              dimmer-use-colorspace))
 
+(defun dimmer--adjustment-func-shade (_face _attribute color frac)
+  "Shade COLOR with the intensity of FRAC and return the result.
+For use with `dimmer-adjustment-method'."
+  (dimmer-cached-compute-rgb color
+                             dimmer-shade-target
+                             frac
+                             dimmer-use-colorspace))
+
 (defun dimmer--resolve-adjustment-func()
   "Resolve the color adjustment function from `dimmer-adjustment-method'.
 If the value of `dimmer-adjustment-mode' is `:desaturate' or `:hueshift', that
@@ -549,7 +566,8 @@ value will be used instead, to insure backwards compatibility."
                  dimmer-adjustment-mode)
       (plist-get `(:dim        ,#'dimmer--adjustment-func-dim
                    :desaturate ,#'dimmer--adjustment-func-desaturate
-                   :hueshift   ,#'dimmer--adjustment-func-hueshift)
+                   :hueshift   ,#'dimmer--adjustment-func-hueshift
+                   :shade      ,#'dimmer--adjustment-func-shade)
                  dimmer-adjustment-method)
       dimmer-adjustment-method))
 
