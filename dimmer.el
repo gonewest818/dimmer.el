@@ -87,9 +87,12 @@
 ;; Customization:
 ;;
 ;; `dimmer-adjustment-mode' controls what aspect of the color scheme is adjusted
-;; when dimming.  Choices include :foreground (default), :background, :both,
-;; :desaturate (desaturate toward gray), and :hueshift (shift colors toward a
-;; configurable target hue).  See the defcustom docstring for details.
+;; when dimming.  Choices include :foreground (default), :background, :both.
+;; See the defcustom docstring for details.
+;;
+;; `dimmer-adjustment-method' Control how colors are adjusted when dimming.
+;; Choice include :dim (default), :desaturate, :hueshift. See the defcustom
+;; docstring for details.
 ;;
 ;; `dimmer-fraction' controls the degree to which buffers are dimmed.
 ;; Range is 0.0 - 1.0, and default is 0.20.  Increase value if you
@@ -150,24 +153,52 @@
 (defcustom dimmer-adjustment-mode :foreground
   "Control what aspect of the color scheme is adjusted when dimming.
 Choices are:
-  `:foreground' (default) — dim foreground colors toward the default background
-  `:background' — dim background colors toward the default foreground
+  `:foreground' (default) — dim the foreground color, and face attributes found
+    in `dimmer-color-bearing-attributes'
+  `:background' — dim background colors
   `:both' — dim both foreground and background
-    (each by half of `dimmer-fraction')
-  `:desaturate' — desaturate all color-bearing face attributes toward gray,
-    preserving each attribute's original lightness
-  `:hueshift' — shift all color-bearing face attributes toward a target hue,
-    preserving each attribute's original saturation and lightness.
 
-The `:desaturate' and `:hueshift' modes operate on all color-bearing
-face attributes (foreground, background, box, underline, overline,
-strike-through, distant-foreground) without halving the dimming
-fraction."
+For backwards compatibility reasons, this value can also be set to
+`:desaturate' or `:hueshift'. Doing so overrides the value in
+`dimmer-adjustment-method' and will act on both the foreground and background.
+This behavior is deprecated and should not be relied on."
   :type '(radio (const :tag "Foreground colors are dimmed" :foreground)
                 (const :tag "Background colors are dimmed" :background)
                 (const :tag "Foreground and background are dimmed" :both)
+                (const :tag "\(DEPRECATED\) Desaturate toward gray" :desaturate)
+                (const :tag "\(DEPRECATED\) Shift toward target hue" :hueshift))
+  :group 'dimmer)
+
+(defcustom dimmer-adjustment-method :dim
+  "Control how colors are adjusted when dimming.
+choices are:
+  `:dim' (default) - dim foreground colors toward the default background and
+    the background toward the default foreground. (if `dimmer-adjustment-mode'
+    is `:both', each are dimmed by half of `dimmer-fraction')
+  `:desaturate' - desaturate all color-bearing face attributes toward gray,
+    preserving each attribute's original lightness
+  `:hueshift' — shift all color-bearing face attributes toward a target hue,
+    preserving each attribute's original saturation and lightness
+  `:shade' - shade all color-bearing face attributes toward a target color.
+
+alternatively, you can set this value to a function, and dimmer will use that
+function for adjusting colors. the function should accept 4 arguments
+(FACE ATTRIBUTE COLOR FRAC) and return ether a valid color string or nil.
+  FACE is the face being adjusted.
+  ATTRIBUTE is the attribute of FACE being adjusted.
+  COLOR is the color component collected from ATTRIBUTE. it is guaranteed to be
+    a valid color string, ether a color name (e.g. \"white\"), or an RGB value
+    (e.g. \"#ff12ec\"). this can sometime differ from the value of ATTRIBUTE for
+    FACE.
+  FRAC is the degree to which COLOR should be adjusted (0.0 - 1.0) where 0.0 is
+    no change and 1.0 is maximum change.
+the color this function returns will be used has the new color for ATTRIBUTE on
+FACE. if it returns nil, then color adjustment will be skipped."
+  :type '(radio (const :tag "colors are dimmed" :dim)
                 (const :tag "Desaturate toward gray" :desaturate)
-                (const :tag "Shift toward target hue" :hueshift))
+                (const :tag "Shift toward target hue" :hueshift)
+                (const :tag "Shade with a target color" :shade)
+                (function))
   :group 'dimmer)
 
 (make-obsolete-variable
@@ -249,8 +280,8 @@ wrong, then try HSL or RGB instead."
   :group 'dimmer)
 
 (defcustom dimmer-hue-target :background
-  "Target hue for the `:hueshift' adjustment mode.
-When `dimmer-adjustment-mode' is `:hueshift', dimmed colors are shifted
+  "Target hue for the `:hueshift' adjustment method.
+When `dimmer-adjustment-method' is `:hueshift', dimmed colors are shifted
 toward this hue.  The following values are accepted:
   `:background'  — use the hue of the `default' face background (default)
   `:foreground'  — use the hue of the `default' face foreground
@@ -261,6 +292,13 @@ toward this hue.  The following values are accepted:
   :type '(choice (const :tag "Use default background hue" :background)
                  (const :tag "Use default foreground hue" :foreground)
                  (float :tag "Specific hue (0.0–1.0)"))
+  :group 'dimmer)
+
+(defcustom dimmer-shade-target "black"
+  "Target color for the `:shade' adjustment method.
+When `dimmer-adjustment-method' is `:shade', dimmed colors are shaded with this
+color."
+  :type '(color)
   :group 'dimmer)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -450,48 +488,6 @@ using the arguments C0, C1, FRAC, and COLORSPACE as the key."
   "Face attributes beyond :foreground and :background that carry color.
 Each is dimmed using the same color math as the foreground.")
 
-(defun dimmer--dim-face-attribute (face attribute target-color frac)
-  "Dim the color in FACE's ATTRIBUTE toward TARGET-COLOR.
-ATTRIBUTE is a face attribute keyword like :box, :underline, etc.
-Returns the dimmed attribute value suitable for inclusion in a face
-spec, or nil if ATTRIBUTE has no explicit color component.
-FRAC is the dimming amount (0.0-1.0) as passed to `dimmer-face-color'.
-
-When `dimmer-adjustment-mode' is `:desaturate' or `:hueshift', the
-target is computed per-face from the attribute's own color rather
-than using TARGET-COLOR directly."
-  (let* ((value (face-attribute face attribute nil t))
-         (color (cond
-                 ((stringp value) value)
-                 ((and (listp value) (plist-member value :color))
-                  (plist-get value :color))
-                 (t nil)))
-         ;; Only dim explicit color strings; leave symbolic values such as
-         ;; underline's `foreground-color' for Emacs to resolve.
-         (should-dim (and (stringp color) (color-defined-p color)))
-         (effective-target
-          (pcase dimmer-adjustment-mode
-            (:desaturate
-             (if should-dim
-                 (dimmer--gray-of-same-lightness color)
-               target-color))
-            (:hueshift
-             (if should-dim
-                 (dimmer--color-with-target-hue
-                  color (dimmer--resolve-hue-target))
-               target-color))
-            (_ target-color))))
-    (when should-dim
-      (cond
-       ((stringp value)
-        (dimmer-cached-compute-rgb color effective-target frac
-                                   dimmer-use-colorspace))
-       ((listp value)
-        (plist-put (copy-sequence value) :color
-                   (dimmer-cached-compute-rgb
-                    color effective-target frac
-                    dimmer-use-colorspace)))))))
-
 (defun dimmer--gray-of-same-lightness (color)
   "Return a gray (saturation 0) with the same lightness as COLOR."
   (let* ((rgb (color-name-to-rgb color))
@@ -521,75 +517,95 @@ than using TARGET-COLOR directly."
        0.0))
     ((pred floatp) (mod dimmer-hue-target 1.0))))
 
-(defun dimmer-face-color (f frac)
-  "Compute a dimmed version of the foreground color of face F.
-If `dimmer-adjust-background-color` is true, adjust the
-background color as well.  FRAC is the amount of dimming where
-0.0 is no change and 1.0 is maximum change.  Returns a plist
-containing the new foreground (and if needed, new background)
-suitable for use with `face-remap-add-relative`.
+(defun dimmer--adjustment-func-dim (_face attribute color frac)
+  "Shift COLOR towards the default background color by FRAC.
+if ATTRIBUTE is `:background', COLOR is shifted to the default foreground color
+instead. if `dimmer-adjustment-mode' is `:both', FRAC is divided in half.
 
-All color-bearing face attributes are dimmed using the same color
-math: `:box`, `:underline`, `:overline`, `:strike-through`, and
-`:distant-foreground`.  Attributes without explicit color (t,
-nil, or plists without :color) are left unmodified since they
-delegate to the foreground color, which is already dimmed."
-  (let* ((fg-orig (face-foreground f))
-         (bg-orig (face-background f))
-         ;; since 29.1, face attributes can be the symbol 'reset
-         (fg (if (eq 'reset fg-orig) 'unspecified  fg-orig))
-         (bg (if (eq 'reset bg-orig) 'unspecified  bg-orig))
-         (def-fg (face-foreground 'default))
-         (def-bg (face-background 'default))
-         ;; when mode is :both, the perceptual effect is "doubled"
-         (my-frac (if (eq dimmer-adjustment-mode :both)
-                      (/ frac 2.0)
-                    frac))
-         (result '()))
-    ;; We shift the desired components of F by FRAC amount toward the target
-    ;; color, thereby dimming or desaturating the overall appearance:
-    ;;   * When the `dimmer-adjustment-mode` is `:foreground` we move the
-    ;;     foreground component toward the `default` background.
-    ;;   * When the `dimmer-adjustment-mode` is `:background` we move the
-    ;;     background component toward the `default` foreground.
-    ;;   * When the mode is `:desaturate` we desaturate toward a gray of
-    ;;     the same lightness, preserving luminance.
-    ;;   * When the mode is `:hueshift` we shift toward the configured
-    ;;     target hue, preserving saturation and lightness.
-    (when (and (memq dimmer-adjustment-mode
-                     '(:foreground :both :desaturate :hueshift))
-               fg (color-defined-p fg)
-               def-bg (color-defined-p def-bg))
-      (let ((target (pcase dimmer-adjustment-mode
-                      (:desaturate (dimmer--gray-of-same-lightness fg))
-                      (:hueshift (dimmer--color-with-target-hue
-                                  fg (dimmer--resolve-hue-target)))
-                      (_ def-bg))))
-        (setq result
-              (plist-put result :foreground
-                         (dimmer-cached-compute-rgb fg target
-                                                    my-frac
-                                                    dimmer-use-colorspace)))))
-    (when (and (memq dimmer-adjustment-mode
-                     '(:background :both :desaturate :hueshift))
-               bg (color-defined-p bg)
-               def-fg (color-defined-p def-fg))
-      (let ((target (pcase dimmer-adjustment-mode
-                      (:desaturate (dimmer--gray-of-same-lightness bg))
-                      (:hueshift (dimmer--color-with-target-hue
-                                  bg (dimmer--resolve-hue-target)))
-                      (_ def-fg))))
-        (setq result
-              (plist-put result :background
-                         (dimmer-cached-compute-rgb bg target
-                                                    my-frac
-                                                    dimmer-use-colorspace)))))
-    (when (and (memq dimmer-adjustment-mode
-                     '(:foreground :both :desaturate :hueshift))
-               def-bg (color-defined-p def-bg))
-      (dolist (attr dimmer-color-bearing-attributes)
-        (when-let ((dimmed (dimmer--dim-face-attribute f attr def-bg my-frac)))
-          (setq result (plist-put result attr dimmed)))))
+For use with `dimmer-adjustment-method'."
+  (let ((target (if (eq attribute :background)
+                    (face-foreground 'default)
+                  (face-background 'default))))
+    (when (and target (color-defined-p target))
+      (when (eq dimmer-adjustment-mode :both)
+        (setq frac (/ frac 2.0)))
+      (dimmer-cached-compute-rgb color target frac
+                                 dimmer-use-colorspace))))
+
+(defun dimmer--adjustment-func-desaturate (_face _attribute color frac)
+  "Desaturate COLOR with the intensity of FRAC and return the result.
+For use with `dimmer-adjustment-method'."
+  (dimmer-cached-compute-rgb color
+                             (dimmer--gray-of-same-lightness color)
+                             frac
+                             dimmer-use-colorspace))
+
+(defun dimmer--adjustment-func-hueshift (_face _attribute color frac)
+  "Shift the hue of COLOR with the intensity of FRAC and return the result.
+For use with `dimmer-adjustment-method'."
+  (dimmer-cached-compute-rgb color
+                             (dimmer--color-with-target-hue
+                              color (dimmer--resolve-hue-target))
+                             frac
+                             dimmer-use-colorspace))
+
+(defun dimmer--adjustment-func-shade (_face _attribute color frac)
+  "Shade COLOR with the intensity of FRAC and return the result.
+For use with `dimmer-adjustment-method'."
+  (dimmer-cached-compute-rgb color
+                             dimmer-shade-target
+                             frac
+                             dimmer-use-colorspace))
+
+(defun dimmer--resolve-adjustment-func()
+  "Resolve the color adjustment function from `dimmer-adjustment-method'.
+If the value of `dimmer-adjustment-mode' is `:desaturate' or `:hueshift', that
+value will be used instead, to insure backwards compatibility."
+  (or (plist-get `(:desaturate ,#'dimmer--adjustment-func-desaturate
+                   :hueshift   ,#'dimmer--adjustment-func-hueshift)
+                 dimmer-adjustment-mode)
+      (plist-get `(:dim        ,#'dimmer--adjustment-func-dim
+                   :desaturate ,#'dimmer--adjustment-func-desaturate
+                   :hueshift   ,#'dimmer--adjustment-func-hueshift
+                   :shade      ,#'dimmer--adjustment-func-shade)
+                 dimmer-adjustment-method)
+      dimmer-adjustment-method))
+
+(defun dimmer--resolve-color-bearing-attributes ()
+  "Return a list of face attributes that carry color.
+Determined by `dimmer-adjustment-mode' and `dimmer-color-bearing-attributes'"
+  (append (when (not (eq dimmer-adjustment-mode :foreground))
+            '(:background))
+          (when (not (eq dimmer-adjustment-mode :background))
+            `(:foreground . ,dimmer-color-bearing-attributes))))
+
+(defun dimmer-face-color (f frac)
+  "Compute a dimmed version of the colors for face F.
+FRAC is the amount of dimming where 0.0 is no change and 1.0 is maximum change.
+Returns a plist containing the new colors attributes suitable for use with
+`face-remap-add-relative'.
+
+Which attributes are checked for color information is determined by
+`dimmer-adjustment-mode' and `dimmer-color-bearing-attributes'. Attributes
+without explicit color (t, nil, or plists without :color) are left unmodified
+since they delegate to the foreground color, which is already dimmed."
+  (let ((result `())
+        (adjustment-func (dimmer--resolve-adjustment-func)))
+    (dolist (attribute (dimmer--resolve-color-bearing-attributes))
+      (let ((value (face-attribute f attribute nil t)))
+        ;; if `value` is a color string
+        (if (and (stringp value) (color-defined-p value))
+            (when-let ((new-color (funcall adjustment-func
+                                           f attribute value frac)))
+              (setq result (plist-put result attribute new-color)))
+          ;; when `value` is a color property list
+          (when-let* ((color (and (listp value) (plist-get value :color)))
+                      (_ (and (stringp color) (color-defined-p color)))
+                      (new-color (funcall adjustment-func
+                                          f attribute color frac)))
+            (setq result (plist-put result attribute
+                                    (plist-put (copy-sequence value)
+                                               :color new-color)))))))
     result))
 
 (defun dimmer-filtered-face-list ()
