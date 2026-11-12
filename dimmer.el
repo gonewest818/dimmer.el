@@ -707,13 +707,21 @@ WINDOW will not be dimmed if:
                      (funcall f buffer))
                    dimmer-buffer-exclusion-predicates)))))
 
-(defun dimmer-process-all (&optional force)
+(defun dimmer-process-all (&optional force frames)
   "Process all windows and dim or un-dim each.
 
 When FORCE is true some special logic applies.  Namely, we must
 process all windows regardless of the various dimming predicates.
 While performing this scan, any window that would have been
-excluded due to the predicates before should be un-dimmed now."
+excluded due to the predicates before should be un-dimmed now.
+
+FRAMES can be used to limit the windows processed to ones on specific frames.
+valid values for FRAMES are:
+  nil (default) - process all windows on all frames
+  A frame - process only the windows on that frame
+  `visible' - process all windows on all visible frames on the current terminal
+  0 (the number zero) - process all windows on all visible and iconified frames
+    on the current terminal"
   (dimmer--dbg-buffers 1 "dimmer-process-all")
   (let* ((selected (selected-window))
          (ignore   (cl-some (lambda (f) (and (fboundp f) (funcall f)))
@@ -731,7 +739,7 @@ excluded due to the predicates before should be un-dimmed now."
                (dimmer-undim-window window)
              (dimmer-dim-window window))))
        nil
-       t))))
+       (or frames t)))))
 
 (defun dimmer-dim-all ()
   "Dim all windows."
@@ -753,13 +761,13 @@ excluded due to the predicates before should be un-dimmed now."
   "Process all windows if any window buffers changed for FRAME."
   (dimmer--dbg 1 "dimmer-buffer-change-handler: frame %s" frame)
   (unless (frame-parameter frame 'parent-frame)
-    (dimmer-process-all)))
+    (dimmer-process-all nil frame)))
 
 (defun dimmer-selection-change-handler (frame)
   "Process all windows if the selected window changed for FRAME."
   (dimmer--dbg 1 "dimmer-selection-change-handler: frame %s" frame)
   (unless (frame-parameter frame 'parent-frame)
-    (dimmer-process-all)))
+    (dimmer-process-all nil frame)))
 
 (defun dimmer-after-focus-change-handler ()
   "Handle cases where a frame may have gained or last focus.
@@ -830,7 +838,8 @@ advising `enable-theme' for Emacs 27-28."
         (add-hook 'window-buffer-change-functions
                   #'dimmer-buffer-change-handler)
         (add-hook 'window-selection-change-functions
-                  #'dimmer-selection-change-handler))
+                  #'dimmer-selection-change-handler)
+        (dimmer-process-all t))
     (dimmer-manage-frame-focus-hooks nil)
     (dimmer-manage-theme-hooks nil)
     (remove-hook 'window-buffer-change-functions
