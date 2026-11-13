@@ -30,6 +30,18 @@
      (setq-local dimmer-buffer-tainted nil)
      ,@body))
 
+(defmacro dimmer-test-with-temp-window (&rest body)
+  "temporarily set the selected window to a temp buffer."
+  (let ((temp-window (make-symbol "temp-window"))
+        (old-buffer (make-symbol "old-buffer")))
+    `(dimmer-test-with-temp-buffer
+      (let* ((,temp-window (selected-window))
+             (,old-buffer (window-buffer ,temp-window)))
+        (set-window-buffer ,temp-window (current-buffer))
+        (unwind-protect
+            (progn ,@body)
+          (set-window-buffer ,temp-window ,old-buffer))))))
+
 (ert-deftest dimmer-restore-buffer/marks-tainted-on-remap-error ()
   (dimmer-test-with-temp-buffer
    (let ((calls nil)
@@ -56,18 +68,16 @@
      (should-not dimmer-buffer-tainted)
      (should (null dimmer-buffer-face-remaps)))))
 
-(ert-deftest dimmer-filtered-buffer-list/skips-tainted-when-disabled ()
-  (dimmer-test-with-temp-buffer
+(ert-deftest dimmer-filtered-window-p/skips-tainted-when-disabled ()
+  (dimmer-test-with-temp-window
    (let ((dimmer-reprocess-tainted-buffers nil)
          (dimmer-buffer-tainted t))
-     (should-not (member (current-buffer)
-                         (dimmer-filtered-buffer-list (list (current-buffer))))))))
+     (should (dimmer-filter-window-p (selected-window))))))
 
-(ert-deftest dimmer-filtered-buffer-list/keeps-tainted-when-enabled ()
-  (dimmer-test-with-temp-buffer
+(ert-deftest dimmer-filtered-window-p/keeps-tainted-when-enabled ()
+  (dimmer-test-with-temp-window
    (let ((dimmer-reprocess-tainted-buffers t)
          (dimmer-buffer-tainted t))
-     (should (member (current-buffer)
-                     (dimmer-filtered-buffer-list (list (current-buffer))))))))
+     (should-not (dimmer-filter-window-p (selected-window))))))
 
 ;;; restore-policy-test.el ends here

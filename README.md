@@ -1,6 +1,6 @@
 # dimmer.el
 
-Visually highlight the selected buffer.
+Visually highlight the selected window.
 
 [![MELPA Stable](https://stable.melpa.org/packages/dimmer-badge.svg)](https://stable.melpa.org/#/dimmer)
 [![MELPA](https://melpa.org/packages/dimmer-badge.svg)](https://melpa.org/#/dimmer)
@@ -8,8 +8,8 @@ Visually highlight the selected buffer.
 
 ## Description
 
-This package provides a minor mode that indicates which buffer is
-currently active by dimming the faces in the other buffers.  It does
+This package provides a minor mode that indicates which window is
+currently active by dimming the faces in the other windows.  It does
 this nondestructively, and computes the dimmed faces dynamically such
 that your overall color scheme is shown in a muted form without
 requiring you to define what is a "dim" version of every face.
@@ -41,24 +41,30 @@ dimming.  Choices are `:foreground` (default), `:background`, `:both`,
 `:desaturate` (desaturate toward gray), or `:hueshift` (shift colors
 toward a target hue).
 
-* `dimmer-fraction` controls the degree to which buffers are dimmed.
+* `dimmer-fraction` controls the degree to which windows are dimmed.
 Typical range is 0.0 - 1.0, and default is 0.20.  Increase value if
-you like the other buffers to be more dim.  Some users have pointed
+you like the other windows to be more dim.  Some users have pointed
 out to me that this value can actually be negative(!) with interesting
 effects.
 
 * `dimmer-buffer-exclusion-regexps` can be used to specify buffers
 that should never be dimmed.  If the buffer name matches any regexp in
-this list then `dimmer.el` will not dim that buffer.  Note, this
-variable replaces `dimmer-exclusion-regexp` and
+this list then `dimmer.el` will not dim any window with that buffer.
+Note, this variable replaces `dimmer-exclusion-regexp` and
 `dimmer-exclusion-regexp-list`, which are now obsolete.
 
 * `dimmer-buffer-exclusion-predicates` can be used to specify buffers
 that should never be dimmed.  If any predicate function in this list
-returns true for the buffer then `dimmer.el` will not dim that buffer.
+returns true for the buffer then `dimmer.el` will not dim any window 
+with that buffer.
+
+* `dimmer-window-exclusion-predicates` can be used to specify windows 
+that should never be dimmed.  Each Predicate function in this list is
+passed the window being processed.  If any of them returns true,
+`dimmer.el` will not dim that window.
 
 * `dimmer-prevent-dimming-predicates` can be used to prevent dimmer from
-altering the dimmed buffer list.  This can be used to detect cases
+altering the dimmed window list.  This can be used to detect cases
 where a package pops up a window temporarily, and we don't want the
 dimming to change.  If any function in this list returns a non-nil
 value, dimming state will not be changed. (Note, this variable replaces
@@ -71,9 +77,9 @@ face-remap restore failure.  When nil, tainted buffers are skipped
 until the user explicitly clears the taint state.
 
 * `dimmer-watch-frame-focus-events` controls whether dimmer will dim all
-buffers when Emacs no longer has focus in the windowing system. This
+windows when Emacs no longer has focus in the windowing system. This
 is enabled by default. Some users may prefer to set this to nil, and
-have the dimmed / not dimmed buffers stay as-is even when Emacs
+have the dimmed / not dimmed windows stay as-is even when Emacs
 doesn't have focus.
 
 * `dimmer-use-colorspace` allows you to specify what color space the
@@ -153,7 +159,7 @@ foreground and background colors closer together.
 Here are a few examples of that.
 
 * Let's say you have a theme with "black" text on a "white"
-  background. When dimmer acts on a buffer like that, the text becomes
+  background. When dimmer acts on a window like that, the text becomes
   a "dark gray" (when in `:foreground` mode), or the background
   becomes a "light gray" (when in `:background` mode). The result is
   that the overall contrast between the foreground and background is
@@ -174,27 +180,9 @@ Here are a few examples of that.
 Perhaps this all sounds complicated but rest assured that in practice,
 the dimmed colors will look natural and (most importantly) will be
 consistent with your selected theme.  It'll just seem like the selected
-buffer "pops" visually compared to the rest.
+window "pops" visually compared to the rest.
 
 ## Troubleshooting
-
-### Windows aren't dimming when I switch from one to another.
-
-Do you have different buffers in those windows? It's very common to
-test this package by installing it, launching emacs, and splitting
-`*scratch*` into two windows and then toggling between the two
-windows. Users may be surprised to find nothing happens.
-
-Why not? This module makes use of the `face-remap-*` APIs in Emacs,
-and these APIs work on *buffers* rather than windows. If you have
-multiple windows displaying the same buffer they will dim or undim
-together. Which means, until and unless you switch the other window to
-a new buffer, you won't see the dimming effect.
-
-If/when Emacs offers the controls I need to do window-specific face
-remaps, I'll gladly put this feature in. In the meantime, my
-configuration combines this package with `global-hl-line-mode` so I
-still have a visual cue which window is active.
 
 ### It doesn't dim enough. I can barely see it.
 

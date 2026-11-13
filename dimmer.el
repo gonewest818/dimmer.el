@@ -26,8 +26,8 @@
 ;;
 ;;; Commentary:
 ;;
-;; This module provides a minor mode that indicates which buffer is
-;; currently active by dimming the faces in the other buffers.  It
+;; This module provides a minor mode that indicates which window is
+;; currently active by dimming the faces in the other windows.  It
 ;; does this nondestructively, and computes the dimmed faces
 ;; dynamically such that your overall color scheme is shown in a muted
 ;; form without requiring you to define what is a "dim" version of
@@ -91,9 +91,9 @@
 ;; :desaturate (desaturate toward gray), and :hueshift (shift colors toward a
 ;; configurable target hue).  See the defcustom docstring for details.
 ;;
-;; `dimmer-fraction' controls the degree to which buffers are dimmed.
+;; `dimmer-fraction' controls the degree to which windows are dimmed.
 ;; Range is 0.0 - 1.0, and default is 0.20.  Increase value if you
-;; like the other buffers to be more dim.
+;; like the other windows to be more dim.
 ;;
 ;; `dimmer-buffer-exclusion-regexps' can be used to specify buffers that
 ;; should never be dimmed.  If the buffer name matches any regexp in
@@ -103,18 +103,23 @@
 ;; should never be dimmed.  If any predicate function in this list
 ;; returns true for the buffer then `dimmer.el' will not dim that buffer.
 ;;
+;; `dimmer-window-exclusion-predicates' can be used to specify windows that
+;; should never be dimmed.  each predicate function in this list is given the
+;; window currently being processed.  if any of them returns true, then
+;; `dimmer.el' will not dim that window.
+;;
 ;; `dimmer-prevent-dimming-predicates' can be used to prevent dimmer from
-;; altering the dimmed buffer list.  This can be used to detect cases
-;; where a package pops up a window temporarily, and we don't want the
-;; dimming to change.  If any function in this list returns a non-nil
-;; value, dimming state will not be changed.
+;; altering the dimmed window list.  This can be used to detect cases where a
+;; package pops up a window temporarily, and we don't want the dimming to
+;; change.  If any function in this list returns a non-nil value, dimming state
+;; will not be changed.
 ;;
 ;; `dimmer-reprocess-tainted-buffers' controls whether dimmer continues
 ;; processing buffers marked tainted after a partial face-remap restore
 ;; failure.
 ;;
 ;; `dimmer-watch-frame-focus-events' controls whether dimmer will dim all
-;; buffers when Emacs no longer has focus in the windowing system.  This
+;; windows when Emacs no longer has focus in the windowing system.  This
 ;; is enabled by default.  Some users may prefer to set this to nil, and
 ;; have the dimmed / not dimmed buffers stay as-is even when Emacs
 ;; doesn't have focus.
@@ -136,14 +141,14 @@
 ;;; customization
 
 (defgroup dimmer nil
-  "Highlight the current buffer by dimming the colors on the others."
+  "Highlight the current window by dimming the colors on the others."
   :prefix "dimmer-"
   :group 'convenience
   :link '(url-link :tag "GitHub" "https://github.com/gonewest818/dimmer.el"))
 
 (define-obsolete-variable-alias 'dimmer-percent 'dimmer-fraction "0.2.2")
 (defcustom dimmer-fraction 0.20
-  "Control the degree to which buffers are dimmed (0.0 - 1.0)."
+  "Control the degree to which windows are dimmed (0.0 - 1.0)."
   :type '(float)
   :group 'dimmer)
 
@@ -188,20 +193,30 @@ See documentation for details."
 (defcustom dimmer-buffer-exclusion-predicates '()
   "List of predicate functions indicating buffers that are never dimmed.
 
-Functions in the list are called while visiting each available
-buffer.  If the predicate function returns a truthy value, then
-the buffer is not dimmed."
+Functions in the list are called while visiting each visible buffer. If the
+predicate function returns a truthy value, then the buffer is not dimmed.
+functions may be called more then once for a buffer if that buffer is opened in
+more then one window."
+  :type '(repeat (choice function))
+  :group 'dimmer)
+
+(defcustom dimmer-window-exclusion-predicates '()
+  "List of predicate functions indicating windows that are never dimmed.
+
+Functions in the list are called for each window when updateing which windows
+are dimmed. the window being updated is passed as argument. if the predicate
+funtion returns a truthy value, then the window is not dimmed."
   :type '(repeat (choice function))
   :group 'dimmer)
 
 (define-obsolete-variable-alias
   'dimmer-exclusion-predicates 'dimmer-prevent-dimming-predicates "0.4.0")
 (defcustom dimmer-prevent-dimming-predicates '(window-minibuffer-p)
-  "List of functions which prevent dimmer from altering dimmed buffer set.
+  "List of functions which prevent dimmer from altering dimmed window set.
 
 Functions in this list are called in turn with no arguments.  If any function
-returns a non-nil value, no buffers will be added to or removed from the set
-of dimmed buffers."
+returns a non-nil value, no window will be added to or removed from the set
+of dimmed windows."
   :type '(repeat (choice function))
   :group 'dimmer)
 
@@ -348,9 +363,6 @@ uses a buffer name that fits this pattern."
 ;;; implementation
 
 (defvar dimmer-mode)                    ; forward declaration
-
-(defvar dimmer-last-buffer nil
-  "Identity of the last buffer to be made current.")
 
 (defvar dimmer-debug-messages 0
   "Control debugging output to *Messages* buffer.
@@ -621,6 +633,7 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
       (dolist (f (dimmer-filtered-face-list))
         (let ((c (dimmer-face-color f frac)))
           (when c  ; e.g. "(when-let* ((c (...)))" in Emacs 26
+            (setq c `(:filtered (:window dimmer-dim-window t) ,c))
             (push (face-remap-add-relative f c) dimmer-buffer-face-remaps)))))
     (dimmer--dbg 2 "dimmer-buffer-face-remaps: %s"
                  (alist-get 'default dimmer-buffer-face-remaps))
@@ -652,98 +665,109 @@ FRAC controls the dimming as defined in ‘dimmer-face-color’."
     (dimmer--dbg 2 "dimmer-restore-buffer: AFTER '%s' (%s)" buf
                  (alist-get 'default face-remapping-alist))))
 
-(defun dimmer-visible-buffer-list ()
-  "Get all visible buffers in all frames.
-Excludes windows belonging to child frames, since those are transient
-popups that should not participate in dimming."
-  (let (buffers)
-    (walk-windows
-     (lambda (win)
-       (unless (frame-parameter (window-frame win) 'parent-frame)
-         (let ((buf (window-buffer win)))
-           (unless (member buf buffers)
-             (push buf buffers)))))
-     nil
-     t)
-    (dimmer--dbg 3 "dimmer-visible-buffer-list: %s" buffers)
-    buffers))
+(defun dimmer-dimmed-window-p (window)
+  "Return non-nil if WINDOW is visibly dimmed."
+  (window-parameter window 'dimmer-dim-window))
 
-(defun dimmer-filtered-buffer-list (&optional buffer-list)
-  "Get filtered subset of all visible buffers in all frames.
-If BUFFER-LIST is provided by the caller, then filter that list."
-  (let ((buffers
-         (seq-filter
-          (lambda (buf)
-            ;; This filter function REMOVES any buffer if:
-            ;;    (a) the buffer is tainted and reprocessing is disabled
-            ;; OR (b) one of the dimmer-buffer-exclusion-regexps matches
-            ;; OR (c) one of the dimmer-buffer-exclusion-predicates is true
-            (let ((name (buffer-name buf)))
-              (not (or (with-current-buffer buf
-                         (and dimmer-buffer-tainted
-                              (not dimmer-reprocess-tainted-buffers)))
-                       (cl-some (lambda (rxp) (string-match-p rxp name))
-                                dimmer-buffer-exclusion-regexps)
-                       (cl-some (lambda (f) (funcall f buf))
-                                dimmer-buffer-exclusion-predicates)))))
-          (or buffer-list (dimmer-visible-buffer-list)))))
-    (dimmer--dbg 3 "dimmer-filtered-buffer-list: %s" buffers)
-    buffers))
+(defun dimmer-undim-window (window)
+  "Hide the dimming effect for WINDOW."
+  (set-window-parameter window 'dimmer-dim-window nil))
 
-(defun dimmer-process-all (&optional force)
-  "Process all buffers and dim or un-dim each.
+(defun dimmer-dim-window (window)
+  "Dim all faces in WINDOW."
+  (set-window-parameter window 'dimmer-dim-window t)
+  (dimmer-dim-buffer (window-buffer window) dimmer-fraction))
+
+(defun dimmer-ignore-window-p (window)
+  "Return non-nil if dimmer can ignore WINDOW."
+  (frame-parameter (window-frame window) 'parent-frame))
+
+(defun dimmer-filter-window-p (window)
+  "Return non-nil if WINDOW should not be dimmed.
+
+WINDOW will not be dimmed if:
+  - WINDOW is part of a child frame
+  - WINDOW fails `dimmer-window-exclusion-predicates'
+  - WINDOW has a tainted buffer and `dimmer-reprocess-tainted-buffers' is false
+  - the buffer in WINDOW fails `dimmer-buffer-exclusion-regexps'
+  - the buffer in WINDOW fails `dimmer-buffer-exclusion-predicates'"
+  (let* ((buffer (window-buffer window))
+         (name (buffer-name buffer)))
+    (with-current-buffer buffer
+      (or (dimmer-ignore-window-p window)
+          (cl-some (lambda (f)
+                     (and (fboundp f) (funcall f window)))
+                   dimmer-window-exclusion-predicates)
+          (and dimmer-buffer-tainted
+               (not dimmer-reprocess-tainted-buffers))
+          (cl-some (lambda (rxp)
+                     (string-match-p rxp name))
+                   dimmer-buffer-exclusion-regexps)
+          (cl-some (lambda (f)
+                     (funcall f buffer))
+                   dimmer-buffer-exclusion-predicates)))))
+
+(defun dimmer-process-all (&optional force frames)
+  "Process all windows and dim or un-dim each.
 
 When FORCE is true some special logic applies.  Namely, we must
-process all buffers regardless of the various dimming predicates.
-While performing this scan, any buffer that would have been
-excluded due to the predicates before should be un-dimmed now."
+process all windows regardless of the various dimming predicates.
+While performing this scan, any window that would have been
+excluded due to the predicates before should be un-dimmed now.
+
+FRAMES can be used to limit the windows processed to ones on specific frames.
+valid values for FRAMES are:
+  nil (default) - process all windows on all frames
+  A frame - process only the windows on that frame
+  `visible' - process all windows on all visible frames on the current terminal
+  0 (the number zero) - process all windows on all visible and iconified frames
+    on the current terminal"
   (dimmer--dbg-buffers 1 "dimmer-process-all")
-  (let* ((selected (current-buffer))
+  (let* ((selected (selected-window))
          (ignore   (cl-some (lambda (f) (and (fboundp f) (funcall f)))
-                            dimmer-prevent-dimming-predicates))
-         (visbufs  (dimmer-visible-buffer-list))
-         (filtbufs (dimmer-filtered-buffer-list visbufs)))
+                            dimmer-prevent-dimming-predicates)))
     (dimmer--dbg 1 "dimmer-process-all: force %s" force)
-    (setq dimmer-last-buffer selected)
     (when (or force (not ignore))
-      (dolist (buf (if force visbufs filtbufs))
-        (dimmer--dbg 2 "dimmer-process-all: buf %s" buf)
-        (if (or (eq buf selected)
-                (and force (not (memq buf filtbufs))))
-            (dimmer-restore-buffer buf)
-          (dimmer-dim-buffer buf dimmer-fraction))))))
+      (walk-windows
+       (lambda (window)
+         (unless (if force
+                     (dimmer-ignore-window-p window)
+                   (dimmer-filter-window-p window))
+           (dimmer--dbg 2 "dimmer-process-all: window %s" window)
+           (if (or (eq window selected)
+                   (and force (dimmer-filter-window-p window)))
+               (dimmer-undim-window window)
+             (dimmer-dim-window window))))
+       nil
+       (or frames t)))))
 
 (defun dimmer-dim-all ()
-  "Dim all buffers."
+  "Dim all windows."
   (dimmer--dbg-buffers 1 "dimmer-dim-all")
-  (mapc (lambda (buf)
-          (dimmer-dim-buffer buf dimmer-fraction))
-        (dimmer-visible-buffer-list)))
+  (walk-windows
+   (lambda (window)
+     (unless (dimmer-ignore-window-p window)
+       (dimmer-dim-window window)))
+   nil
+   t))
 
 (defun dimmer-restore-all ()
-  "Un-dim all buffers."
+  "Un-dim all windows and buffers."
   (dimmer--dbg-buffers 1 "dimmer-restore-all")
+  (walk-windows #'dimmer-undim-window nil t)
   (mapc 'dimmer-restore-buffer (buffer-list)))
 
-(defun dimmer-command-handler ()
-  "Process all buffers if current buffer has changed."
-  (dimmer--dbg-buffers 1 "dimmer-command-handler")
-  (unless (eq (window-buffer) dimmer-last-buffer)
-    (dimmer-process-all)))
+(defun dimmer-buffer-change-handler (frame)
+  "Process all windows if any window buffers changed for FRAME."
+  (dimmer--dbg 1 "dimmer-buffer-change-handler: frame %s" frame)
+  (unless (frame-parameter frame 'parent-frame)
+    (dimmer-process-all nil frame)))
 
-(defun dimmer-config-change-handler ()
-  "Process all buffers if window configuration has changed.
-Skips forced reprocessing when any child frame exists or any
-`dimmer-prevent-dimming-predicate` is active, since those changes
-are typically transient popups rather than user-initiated window changes."
-  (dimmer--dbg-buffers 1 "dimmer-config-change-handler")
-  (let ((ignore (or (cl-some (lambda (f)
-                               (frame-parameter f 'parent-frame))
-                             (frame-list))
-                    (cl-some (lambda (f) (and (fboundp f) (funcall f)))
-                             dimmer-prevent-dimming-predicates))))
-    (unless ignore
-      (dimmer-process-all t))))
+(defun dimmer-selection-change-handler (frame)
+  "Process all windows if the selected window changed for FRAME."
+  (dimmer--dbg 1 "dimmer-selection-change-handler: frame %s" frame)
+  (unless (frame-parameter frame 'parent-frame)
+    (dimmer-process-all nil frame)))
 
 (defun dimmer-after-focus-change-handler ()
   "Handle cases where a frame may have gained or last focus.
@@ -802,7 +826,7 @@ advising `enable-theme' for Emacs 27-28."
 
 ;;;###autoload
 (define-minor-mode dimmer-mode
-  "Visually highlight the selected buffer."
+  "Visually highlight the selected window."
   :init-value nil
   :lighter ""
   :global t
@@ -811,14 +835,17 @@ advising `enable-theme' for Emacs 27-28."
       (progn
         (dimmer-manage-frame-focus-hooks t)
         (dimmer-manage-theme-hooks t)
-        (add-hook 'post-command-hook #'dimmer-command-handler)
-        (add-hook 'window-configuration-change-hook
-                  #'dimmer-config-change-handler))
+        (add-hook 'window-buffer-change-functions
+                  #'dimmer-buffer-change-handler)
+        (add-hook 'window-selection-change-functions
+                  #'dimmer-selection-change-handler)
+        (dimmer-process-all t))
     (dimmer-manage-frame-focus-hooks nil)
     (dimmer-manage-theme-hooks nil)
-    (remove-hook 'post-command-hook #'dimmer-command-handler)
-    (remove-hook 'window-configuration-change-hook
-                 #'dimmer-config-change-handler)
+    (remove-hook 'window-buffer-change-functions
+                 #'dimmer-buffer-change-handler)
+    (remove-hook 'window-selection-change-functions
+                 #'dimmer-selection-change-handler)
     (dimmer-restore-all)))
 
 ;;;###autoload
@@ -858,7 +885,7 @@ advising `enable-theme' for Emacs 27-28."
     (let ((inhibit-message t)
           (cb (current-buffer))
           (wb (window-buffer)))
-      (message "%s: cb '%s' <== lb '%s' %s" label cb dimmer-last-buffer
+      (message "%s: cb '%s' %s" label cb
                (if (not (eq cb wb))
                    (format "wb '%s' **" wb)
                  "")))))

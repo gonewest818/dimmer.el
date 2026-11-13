@@ -1,6 +1,6 @@
 # dimmer.el gallery
 
-This gallery shows how `dimmer.el` changes inactive buffers across a small set
+This gallery shows how `dimmer.el` changes inactive windows across a small set
 of representative themes.  Each strip shows increasing `dimmer-fraction` values
 from left to right; `orig` is the undimmed reference slice.
 
@@ -62,7 +62,7 @@ is split between the two directions so the combined effect remains controlled.
 ## Desaturate
 
 Desaturate mode reduces color saturation while preserving each color's
-lightness.  This keeps the visual weight of the inactive buffer but makes it
+lightness.  This keeps the visual weight of the inactive window but makes it
 less chromatic.
 
 ![Catppuccin Latte desaturate](example-catppuccin-latte-desaturate-comp.png)
